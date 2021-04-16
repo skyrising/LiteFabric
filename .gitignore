@@ -1,0 +1,6 @@
+/run/
+/credentials.properties
+out/
+build/
+.gradle/
+.idea/

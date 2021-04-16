@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "litefabric",
+  "version": "${version}",
+  "name": "LiteFabric",
+  "description": "Launch Liteloader mods with Fabric",
+  "authors": [
+    "skyrising"
+  ],
+  "contact": {
+    "homepage": "https://skyrising.xyz",
+    "sources": "https://github.com/skyrising/LiteFabric",
+    "issues": "https://github.com/skyrising/LiteFabric/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "preLaunch": [
+      "de.skyrising.litefabric.impl.PreLaunch"
+    ],
+    "client": [
+      "de.skyrising.litefabric.impl.ClientInit"
+    ]
+  },
+  "mixins": [
+    "litefabric.mixins.json"
+  ],
+  "depends": {
+    "minecraft": "1.12.2"
+  }
+}

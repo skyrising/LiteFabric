@@ -1,0 +1,11 @@
+{
+  "required": true,
+  "package": "de.skyrising.litefabric.mixin",
+  "compatibilityLevel": "JAVA_8",
+  "mixins": [
+    "ClientLoginNetworkHandlerMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "GameRendererMixin",
+    "MinecraftClientMixin"
+  ]
+}
