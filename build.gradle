@@ -18,11 +18,11 @@ version = project.mod_version
 repositories {
 	maven {
 		name = 'Fabric'
-		url = 'http://maven.fabricmc.net/'
+		url = 'https://maven.fabricmc.net/'
 	}
 	maven {
 		name = 'legacy-fabric'
-		url = 'https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven'
+		url = 'https://maven.legacyfabric.net/'
 	}
 	maven {
 		name = 'Jitpack'
@@ -32,7 +32,7 @@ repositories {
 
 minecraft {
 	intermediaryUrl = { version ->
-		return "https://dl.bintray.com/legacy-fabric/Legacy-Fabric-Maven/net/fabricmc/intermediary/${version}/intermediary-${version}-v2.jar";
+		return "https://maven.legacyfabric.net/net/fabricmc/intermediary/${version}/intermediary-${version}-v2.jar";
 	}
 }
 

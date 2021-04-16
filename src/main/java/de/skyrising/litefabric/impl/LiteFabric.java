@@ -81,6 +81,10 @@ public class LiteFabric {
         for (LitemodContainer mod : mods) addMod(mod);
     }
 
+    public Collection<LitemodContainer> getMods() {
+        return Collections.unmodifiableCollection(mods.values());
+    }
+
     public void preLaunch() {
         if (frozen) return;
         frozen = true;

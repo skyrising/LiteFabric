@@ -1,25 +1,34 @@
 package de.skyrising.litefabric.impl;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.google.gson.JsonParser;
 import de.skyrising.litefabric.liteloader.LiteMod;
 import net.fabricmc.loader.FabricLoader;
 import net.fabricmc.loader.util.FileSystemUtil;
+import net.minecraft.class_6055;
+import net.minecraft.class_6057;
+import net.minecraft.client.texture.TextureUtil;
+import net.minecraft.resource.ResourcePack;
+import net.minecraft.util.Identifier;
+import org.apache.commons.io.IOUtils;
+import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
-import java.io.IOException;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.security.CodeSource;
 import java.security.cert.Certificate;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipError;
 
-public class LitemodContainer {
+public class LitemodContainer implements ResourcePack {
     public final ModMetadata meta;
     public final List<String> entryPoints;
     private final FileSystemUtil.FileSystemDelegate fileSystem;
@@ -107,5 +116,72 @@ public class LitemodContainer {
             throw new RuntimeException("Could not search for LiteMod entry point", e);
         }
         return Optional.of(new LitemodContainer(meta, entryPoints, jarFs, remapper, codeSource, LiteFabric.getInstance().combinedClassLoader));
+    }
+
+    private Path getPath(Identifier id) {
+        return fileSystem.get().getPath("assets", id.getNamespace(), id.getPath());
+    }
+
+    private Path getPath(String file) {
+        return fileSystem.get().getPath(file);
+    }
+
+    @Override
+    public InputStream open(Identifier id) throws IOException {
+        return Files.newInputStream(getPath(id));
+    }
+
+    private InputStream openFile(String file) throws IOException {
+        return Files.newInputStream(getPath(file));
+    }
+
+    @Override
+    public boolean contains(Identifier id) {
+        return Files.exists(getPath(id));
+    }
+
+    @Override
+    public Set<String> method_31465() {
+        try {
+            return Files.list(getPath("assets")).filter(Files::isDirectory)
+                    .map(Path::getFileName)
+                    .map(Path::toString)
+                    .collect(Collectors.toSet());
+        } catch (IOException e) {
+            return Collections.emptySet();
+        }
+    }
+
+    @Nullable
+    @Override
+    public <T extends class_6055> T method_31461(class_6057 parser, String section) throws IOException {
+        try {
+            return parseJson(parser, this.openFile("pack.mcmeta"), section);
+        } catch (NoSuchFileException e) {
+            return null;
+        }
+    }
+
+    static <T extends class_6055> T parseJson(class_6057 parser, InputStream inputStream, String section) {
+        BufferedReader bufferedReader = null;
+        try {
+            bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+            JsonObject jsonObject = (new JsonParser()).parse(bufferedReader).getAsJsonObject();
+            return parser.method_31530(section, jsonObject);
+        } catch (RuntimeException var9) {
+            throw new JsonParseException(var9);
+        } finally {
+            IOUtils.closeQuietly(bufferedReader);
+        }
+    }
+
+    @Override
+    public BufferedImage method_31460() throws IOException {
+        return TextureUtil.method_31382(this.openFile("pack.png"));
+    }
+
+    @Override
+    public String getName() {
+        return "Litemod(" + meta.name + ")";
     }
 }
