@@ -129,9 +129,19 @@ public class LiteFabric {
         Entity cameraEntity = client.getCameraEntity();
         boolean inGame = cameraEntity != null && cameraEntity.world != null;
         ListenerType<Tickable> type = TICKABLE;
+        if (type.hasListeners()) {
+            for (Tickable tickable : type.getListeners()) {
+                tickable.onTick(client, partialTicks, inGame, clock);
+            }
+        }
+        if (!client.isRunning()) onShutdown();
+    }
+
+    private void onShutdown() {
+        ListenerType<ShutdownListener> type = SHUTDOWN_LISTENER;
         if (!type.hasListeners()) return;
-        for (Tickable tickable : type.getListeners()) {
-            tickable.onTick(client, partialTicks, inGame, clock);
+        for (ShutdownListener listener : type.getListeners()) {
+            listener.onShutDown();
         }
     }
 
