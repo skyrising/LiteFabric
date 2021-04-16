@@ -7,12 +7,8 @@ import org.objectweb.asm.commons.ClassRemapper;
 import org.objectweb.asm.tree.ClassNode;
 
 import java.io.IOException;
-import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.file.FileSystem;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.security.CodeSource;
 import java.security.SecureClassLoader;
 
@@ -112,8 +108,11 @@ public class LitemodClassLoader extends SecureClassLoader {
         Path path = fileSystem.getPath(name);
         if (!Files.exists(path)) return null;
         try {
+            Path out = Paths.get(".litefabric.out/class/" + name);
+            Files.createDirectories(out.getParent());
+            Files.copy(path, out, StandardCopyOption.REPLACE_EXISTING);
             return path.toUri().toURL();
-        } catch (MalformedURLException e) {
+        } catch (IOException e) {
             return null;
         }
     }

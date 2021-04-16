@@ -23,6 +23,9 @@ import org.spongepowered.asm.mixin.transformer.IMixinTransformer;
 import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 
 public class LiteFabric {
@@ -46,6 +49,7 @@ public class LiteFabric {
     private boolean frozen = false;
 
     private LiteFabric() {
+        deleteDebugOut();
         MappingConfiguration mappings = FabricLauncherBase.getLauncher().getMappingConfiguration();
         remapper = new LitemodRemapper(mappings.getMappings(), mappings.getTargetNamespace());
         LitemodMixinService.addRemapper(remapper);
@@ -177,6 +181,29 @@ public class LiteFabric {
 
     public LitemodRemapper getRemapper() {
         return remapper;
+    }
+
+    private static void deleteDebugOut() {
+        Path out = Paths.get(".litefabric.out");
+        if (!Files.exists(out)) return;
+        try {
+            Files.walkFileTree(out, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    Files.delete(file);
+                    return FileVisitResult.CONTINUE;
+                }
+
+                @Override
+                public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+                    if (exc != null) throw exc;
+                    Files.delete(dir);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     static class ListenerType<T> {
