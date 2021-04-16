@@ -10,15 +10,14 @@ import java.util.List;
 
 class CombinedClassLoader extends SecureClassLoader {
     static final ClassLoader knotClassLoader;
-    private static final Field originalLoaderField;
-    private final List<LitemodClassLoader> classLoaders = new ArrayList<>();
-    private boolean loading;
+    private static final Field urlLoaderField;
+    private final List<LitemodClassProvider> classLoaders = new ArrayList<>();
 
     static {
         try {
             knotClassLoader = CombinedClassLoader.class.getClassLoader();
-            originalLoaderField = knotClassLoader.getClass().getDeclaredField("originalLoader");
-            originalLoaderField.setAccessible(true);
+            urlLoaderField = knotClassLoader.getClass().getDeclaredField("urlLoader");
+            urlLoaderField.setAccessible(true);
         } catch (ReflectiveOperationException e) {
             throw new RuntimeException(e);
         }
@@ -27,71 +26,34 @@ class CombinedClassLoader extends SecureClassLoader {
     CombinedClassLoader() {
         super(findParent());
         System.out.println(getParent());
-        UnsafeUtils.setFinalField(originalLoaderField, knotClassLoader, this);
         try {
-            System.out.println(originalLoaderField.get(knotClassLoader));
-        } catch (IllegalAccessException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private static ClassLoader findParent() {
-        try {
-            return (ClassLoader) originalLoaderField.get(knotClassLoader);
+            ClassLoader urlLoader = ((ClassLoader) urlLoaderField.get(knotClassLoader));
+            UnsafeUtils.setParent(urlLoader, this);
+            System.out.println(urlLoader.getParent());
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public void add(LitemodClassLoader classLoader) {
+    private static ClassLoader findParent() {
+        try {
+            return ((ClassLoader) urlLoaderField.get(knotClassLoader)).getParent();
+        } catch (IllegalAccessException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void add(LitemodClassProvider classLoader) {
         this.classLoaders.add(classLoader);
     }
 
     @Override
-    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        synchronized (getClassLoadingLock(name)) {
-            Class<?> c = loadFromSiblings(name, null);
-            if (c == null) c = getParent().loadClass(name);
-            if (resolve) resolveClass(c);
-            return c;
-        }
-    }
-
-    public Class<?> loadFromSiblings(String name, LitemodClassLoader except) {
-        synchronized (getClassLoadingLock(name)) {
-            Class<?> c = findLoadedClass(name);
-            if (c != null) return c;
-            if (loading) return null;
-            loading = true;
-            try {
-                for (LitemodClassLoader loader : classLoaders) {
-                    if (loader == except) continue;
-                    c = loader.selfLoad(name);
-                    if (c != null) break;
-                }
-                if (c == null) {
-                    c = knotClassLoader.loadClass(name);
-                }
-            } catch (ClassNotFoundException ignored) {
-            } finally {
-                loading = false;
-            }
-            return c;
-        }
-    }
-
-    public URL getResourceFromSiblings(String name, LitemodClassLoader except) {
-        for (LitemodClassLoader loader : classLoaders) {
-            if (loader == except) continue;
-            URL resource = loader.findOwnResource(name);
+    protected URL findResource(String name) {
+        for (LitemodClassProvider loader : classLoaders) {
+            URL resource = loader.findResource(name);
             if (resource != null) return resource;
         }
         return null;
-    }
-
-    @Override
-    protected URL findResource(String name) {
-        return getResourceFromSiblings(name, null);
     }
 
     static {

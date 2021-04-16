@@ -3,7 +3,6 @@ package de.skyrising.litefabric.impl;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import de.skyrising.litefabric.impl.util.RemappingReferenceMapper;
-import de.skyrising.litefabric.impl.util.UnsafeUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
@@ -19,13 +18,18 @@ import org.spongepowered.asm.mixin.transformer.Config;
 import org.spongepowered.asm.obfuscation.RemapperChain;
 import org.spongepowered.asm.service.*;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.*;
+import java.net.URL;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public class LitemodMixinService extends MixinServiceAbstract implements IClassBytecodeProvider {
     private static final Logger LOGGER = LogManager.getLogger();
@@ -55,9 +59,9 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
         }
     }
 
-    private final LitemodClassLoader classLoader;
+    private final LitemodClassProvider classLoader;
 
-    public LitemodMixinService(LitemodClassLoader classLoader) {
+    public LitemodMixinService(LitemodClassProvider classLoader) {
         this.classLoader = classLoader;
     }
 
@@ -108,7 +112,12 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
 
     @Override
     public InputStream getResourceAsStream(String name) {
-        return classLoader.getResourceAsStream(name);
+        URL url = classLoader.findResource(name);
+        try {
+            return url != null ? url.openStream() : null;
+        } catch (IOException e) {
+            return null;
+        }
     }
 
     public void addConfiguration(String configFile) {
@@ -138,29 +147,6 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
         } catch (Exception ex) {
             throw new MixinInitialisationError("Error initialising mixin config " + configFile, ex);
         }
-
-        if (config == null) {
-            return null;
-        }
-/*
-        String parent = config.get().getParentName();
-        if (!Strings.isNullOrEmpty(parent)) {
-            Config parentConfig;
-            try {
-                parentConfig = Config.create(parent, outer);
-                if (parentConfig != null) {
-                    if (!config.get().assignParent(parentConfig)) {
-                        config = null;
-                    }
-                }
-            } catch (Throwable th) {
-                throw new MixinInitialisationError("Error initialising parent mixin config " + parent + " of " + configFile, th);
-            }
-            if (parentConfig == null) {
-                Config.logger.error("Error encountered initialising mixin config {0}: The parent {1} could not be read.", configFile, parent);
-            }
-        }
-*/
         return config;
     }
 
@@ -197,21 +183,6 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
     static void addRemapper(IRemapper remapper) {
         RemapperChain chain = MixinEnvironment.getDefaultEnvironment().getRemappers();
         chain.add(remapper);
-        /*
-        try {
-            Field remappersField = chain.getClass().getDeclaredField("remappers");
-            remappersField.setAccessible(true);
-            @SuppressWarnings("unchecked")
-            List<IRemapper> remappers = (List<IRemapper>) remappersField.get(chain);
-            if (remappers.isEmpty()) {
-                remappers.add(remapper);
-            } else {
-                remappers.add(0, remapper);
-            }
-        } catch (ReflectiveOperationException e) {
-            e.printStackTrace();
-        }
-        */
     }
 
     static void checkSelect() {

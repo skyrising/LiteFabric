@@ -1,5 +1,6 @@
 package de.skyrising.litefabric.impl;
 
+import com.google.common.jimfs.Jimfs;
 import de.skyrising.litefabric.impl.core.ClientPluginChannelsImpl;
 import de.skyrising.litefabric.impl.util.InputImpl;
 import de.skyrising.litefabric.impl.util.TargetRememberingExtension;
@@ -40,6 +41,7 @@ public class LiteFabric {
     private static final ListenerType<PreRenderListener> PRE_RENDER = new ListenerType<>(PreRenderListener.class);
     private static final ListenerType<ShutdownListener> SHUTDOWN_LISTENER = new ListenerType<>(ShutdownListener.class);
     private static final ListenerType<Tickable> TICKABLE = new ListenerType<>(Tickable.class);
+    static final FileSystem TMP_FILES = Jimfs.newFileSystem();
     private final LitemodRemapper remapper;
     final Map<String, LitemodContainer> mods = new LinkedHashMap<>();
     private final ClientPluginChannelsImpl clientPluginChannels = new ClientPluginChannelsImpl();
@@ -69,7 +71,7 @@ public class LiteFabric {
         synchronized (mods) {
             if (mods.containsKey(name)) throw new IllegalStateException("Trying to add mod that already exists: " + name);
             mods.put(name, mod);
-            LitemodClassLoader classLoader = (LitemodClassLoader) mod.getClassLoader();
+            LitemodClassProvider classLoader = mod.getClassProvider();
             combinedClassLoader.add(classLoader);
             List<String> mixinConfigs = mod.meta.mixinConfigs;
             if (mixinConfigs != null) {

@@ -6,6 +6,7 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import de.skyrising.litefabric.liteloader.LiteMod;
 import net.fabricmc.loader.FabricLoader;
+import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.util.FileSystemUtil;
 import net.minecraft.class_6055;
 import net.minecraft.class_6057;
@@ -17,13 +18,10 @@ import org.jetbrains.annotations.Nullable;
 
 import java.awt.image.BufferedImage;
 import java.io.*;
-import java.net.MalformedURLException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.security.CodeSource;
-import java.security.cert.Certificate;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipError;
@@ -32,27 +30,24 @@ public class LitemodContainer implements ResourcePack {
     public final ModMetadata meta;
     public final List<String> entryPoints;
     private final FileSystemUtil.FileSystemDelegate fileSystem;
-    final LitemodClassLoader classLoader;
+    final LitemodClassProvider classProvider;
 
-    public LitemodContainer(ModMetadata meta, List<String> entryPoints, FileSystemUtil.FileSystemDelegate fileSystem, LitemodRemapper remapper, CodeSource codeSource, ClassLoader parent) {
+    public LitemodContainer(ModMetadata meta, List<String> entryPoints, FileSystemUtil.FileSystemDelegate fileSystem, LitemodRemapper remapper) {
         this.meta = meta;
         this.entryPoints = Collections.unmodifiableList(entryPoints);
         this.fileSystem = fileSystem;
-        this.classLoader = new LitemodClassLoader(parent, fileSystem.get(), remapper, codeSource);
+        this.classProvider = new LitemodClassProvider(fileSystem.get(), remapper);
     }
 
-    public ClassLoader getClassLoader() {
-        return classLoader;
+    LitemodClassProvider getClassProvider() {
+        return classProvider;
     }
 
     public LiteMod init(File configPath) {
         for (String className : entryPoints) {
             try {
-                Class<? extends LiteMod> modClass = (Class<? extends LiteMod>) classLoader.loadClass(className);
-                System.out.println(modClass + ": " + modClass.getClassLoader());
-                for (Class<?> itf : modClass.getInterfaces()) {
-                    System.out.println(itf + ": " + itf.getClassLoader());
-                }
+                @SuppressWarnings("unchecked")
+                Class<? extends LiteMod> modClass = (Class<? extends LiteMod>) FabricLauncherBase.getClass(className);
                 LiteMod mod = modClass.newInstance();
                 mod.init(configPath);
                 return mod;
@@ -94,12 +89,6 @@ public class LitemodContainer implements ResourcePack {
             loader.getLogger().warn("Could not load litemod.json in " + path + ": " + e.getMessage());
             return Optional.empty();
         }
-        CodeSource codeSource;
-        try {
-            codeSource = new CodeSource(path.toUri().toURL(), (Certificate[]) null);
-        } catch (MalformedURLException e) {
-            throw new RuntimeException("Failed to construct CodeSource", e);
-        }
         List<String> entryPoints = new ArrayList<>();
         try {
             Files.walk(rootDir).filter(p -> {
@@ -115,7 +104,7 @@ public class LitemodContainer implements ResourcePack {
         } catch (IOException e) {
             throw new RuntimeException("Could not search for LiteMod entry point", e);
         }
-        return Optional.of(new LitemodContainer(meta, entryPoints, jarFs, remapper, codeSource, LiteFabric.getInstance().combinedClassLoader));
+        return Optional.of(new LitemodContainer(meta, entryPoints, jarFs, remapper));
     }
 
     private Path getPath(Identifier id) {

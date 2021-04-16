@@ -5,7 +5,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.transformer.ClassInfo;
-import sun.misc.Unsafe;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -56,7 +55,7 @@ class ClassInfoHax {
             if (contents.containsKey(key) || negatives.contains(key)) return;
             for (LitemodContainer mod : LiteFabric.getInstance().mods.values()) {
                 try {
-                    ClassNode node = mod.classLoader.getClassNode(key);
+                    ClassNode node = mod.classProvider.getClassNode(key);
                     if (node == null) continue;
                     ClassInfo info = (ClassInfo) constructor.invokeExact(node);
                     contents.put(key, info);

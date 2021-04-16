@@ -33,6 +33,17 @@ public class LitemodRemapper extends Remapper implements IRemapper {
         }
     }
 
+    public Set<String> addClass(ClassNode node) {
+        LinkedHashSet<String> superClasses = new LinkedHashSet<>();
+        String superName = node.superName;
+        if (node.superName != null) superClasses.add(classesReverse.getOrDefault(superName, superName));
+        for (String itfName : node.interfaces) {
+            superClasses.add(classesReverse.getOrDefault(itfName, itfName));
+        }
+        this.superClasses.put(node.name, superClasses);
+        return superClasses;
+    }
+
     @Override
     public String map(String internalName) {
         if (internalName.startsWith("com/mumfrey/liteloader/")) {
@@ -69,7 +80,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             FieldDef fieldDef = fieldMap.get(name + descriptor);
             if (fieldDef != null) return fieldDef.getName(targetNamespace);
         }
-        Set<String> superClassNames = superClasses.computeIfAbsent(owner, this::computeSuperClasses);
+        Set<String> superClassNames = getSuperClasses(owner);
         for (String superClass : superClassNames) {
             String superMap = mapFieldName0(superClass, name, descriptor);
             if (superMap != null) return superMap;
@@ -102,7 +113,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             MethodDef methodDef = methodMap.get(name + descriptor);
             if (methodDef != null) return methodDef.getName(targetNamespace);
         }
-        Set<String> superClassNames = superClasses.computeIfAbsent(owner, this::computeSuperClasses);
+        Set<String> superClassNames = getSuperClasses(owner);
         for (String superClass : superClassNames) {
             String superMap = mapMethodName0(superClass, name, descriptor);
             if (superMap != null) return superMap;
@@ -118,23 +129,19 @@ public class LitemodRemapper extends Remapper implements IRemapper {
         return name;
     }
 
-    private Set<String> computeSuperClasses(String cls) {
-        LinkedHashSet<String> superClasses = new LinkedHashSet<>();
+    private Set<String> getSuperClasses(String cls) {
+        if (superClasses.containsKey(cls)) return superClasses.get(cls);
         InputStream in = FabricLauncherBase.getLauncher().getResourceAsStream(map(cls) + ".class");
-        if (in == null) return superClasses;
+        if (in == null) return Collections.emptySet();
         try {
             ClassReader reader = new ClassReader(in);
             ClassNode node = new ClassNode();
             reader.accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
-            String superName = node.superName;
-            if (node.superName != null) superClasses.add(classesReverse.getOrDefault(superName, superName));
-            for (String itfName : node.interfaces) {
-                superClasses.add(classesReverse.getOrDefault(itfName, itfName));
-            }
+            return addClass(node);
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return superClasses;
+        return Collections.emptySet();
     }
 
     @Override
