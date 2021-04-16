@@ -64,11 +64,11 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             owner = unmap(owner);
             descriptor = unmapDesc(descriptor);
         }
-        if (!classes.containsKey(owner)) return name;
         Map<String, FieldDef> fieldMap = fields.computeIfAbsent(owner, this::computeFields);
-        if (fieldMap == null) return name;
-        FieldDef fieldDef = fieldMap.get(name + descriptor);
-        if (fieldDef != null) return fieldDef.getName(targetNamespace);
+        if (fieldMap != null) {
+            FieldDef fieldDef = fieldMap.get(name + descriptor);
+            if (fieldDef != null) return fieldDef.getName(targetNamespace);
+        }
         Set<String> superClassNames = superClasses.computeIfAbsent(owner, this::computeSuperClasses);
         for (String superClass : superClassNames) {
             String superMap = mapFieldName0(superClass, name, descriptor);
@@ -96,12 +96,12 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             owner = unmap(owner);
             descriptor = unmapDesc(descriptor);
         }
-        if (!classes.containsKey(owner)) return name;
-        Map<String, MethodDef> methodMap = methods.computeIfAbsent(owner, this::computeMethods);
-        if (methodMap == null) return name;
-        MethodDef methodDef = methodMap.get(name + descriptor);
-        if (methodDef != null) return methodDef.getName(targetNamespace);
         if (name.startsWith("<")) return name;
+        Map<String, MethodDef> methodMap = methods.computeIfAbsent(owner, this::computeMethods);
+        if (methodMap != null) {
+            MethodDef methodDef = methodMap.get(name + descriptor);
+            if (methodDef != null) return methodDef.getName(targetNamespace);
+        }
         Set<String> superClassNames = superClasses.computeIfAbsent(owner, this::computeSuperClasses);
         for (String superClass : superClassNames) {
             String superMap = mapMethodName0(superClass, name, descriptor);
@@ -126,10 +126,10 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             ClassReader reader = new ClassReader(in);
             ClassNode node = new ClassNode();
             reader.accept(node, ClassReader.SKIP_CODE | ClassReader.SKIP_FRAMES);
-            if (classesReverse.containsKey(node.superName)) superClasses.add(classesReverse.get(node.superName));
+            String superName = node.superName;
+            if (node.superName != null) superClasses.add(classesReverse.getOrDefault(superName, superName));
             for (String itfName : node.interfaces) {
-                if (!classesReverse.containsKey(itfName)) continue;
-                superClasses.add(classesReverse.get(itfName));
+                superClasses.add(classesReverse.getOrDefault(itfName, itfName));
             }
         } catch (IOException e) {
             e.printStackTrace();

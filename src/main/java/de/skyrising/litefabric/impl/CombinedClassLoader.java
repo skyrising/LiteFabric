@@ -89,6 +89,11 @@ class CombinedClassLoader extends SecureClassLoader {
         return null;
     }
 
+    @Override
+    protected URL findResource(String name) {
+        return getResourceFromSiblings(name, null);
+    }
+
     static {
         registerAsParallelCapable();
     }
