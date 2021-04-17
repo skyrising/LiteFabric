@@ -6,6 +6,7 @@ import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
+import org.objectweb.asm.tree.FieldNode;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     private final Map<String, Set<String>> superClasses = new HashMap<>();
     private final Map<String, Map<String, FieldDef>> fields = new HashMap<>();
     private final Map<String, Map<String, MethodDef>> methods = new HashMap<>();
-    private final Set<String> mixinClasses = new HashSet<>();
+    private final Map<String, Set<String>> shadowFields = new HashMap<>();
     private final String targetNamespace;
 
     public LitemodRemapper(TinyTree mappings, String targetNamespace) {
@@ -41,11 +42,17 @@ public class LitemodRemapper extends Remapper implements IRemapper {
         }
         this.superClasses.put(node.name, superClasses);
         if (node.invisibleAnnotations != null) {
-            for (AnnotationNode ann : node.invisibleAnnotations) {
-                if ("Lorg/spongepowered/asm/mixin/Mixin;".equals(ann.desc)) {
-                    mixinClasses.add(node.name);
-                    break;
+            for (AnnotationNode classAnnotation : node.invisibleAnnotations) {
+                if (!"Lorg/spongepowered/asm/mixin/Mixin;".equals(classAnnotation.desc)) continue;
+                Set<String> shadowFields = new HashSet<>();
+                for (FieldNode field : node.fields) {
+                    for (AnnotationNode fieldAnnotation : field.invisibleAnnotations) {
+                        if (!"Lorg/spongepowered/asm/mixin/Shadow;".equals(fieldAnnotation.desc)) continue;
+                        shadowFields.add(field.name);
+                    }
                 }
+                this.shadowFields.put(node.name, shadowFields);
+                break;
             }
         }
         return superClasses;
@@ -81,8 +88,8 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             owner = unmap(owner);
             descriptor = unmapDesc(descriptor);
         }
-        // don't traverse super classes of mixins or else @Shadow fields can be remapped incorrectly
-        if (mixinClasses.contains(owner)) return null;
+        // don't traverse super classes for @Shadow fields
+        if (shadowFields.containsKey(owner) && shadowFields.get(owner).contains(name)) return null;
         Map<String, FieldDef> fieldMap = fields.computeIfAbsent(owner, this::computeFields);
         if (fieldMap != null) {
             FieldDef fieldDef = fieldMap.get(name + descriptor);
@@ -160,6 +167,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
 
     @Override
     public String unmapDesc(String old) {
+        if (old == null) return null;
         int lastL = old.indexOf(76);
         int lastSemi = -1;
         if (lastL < 0) {
