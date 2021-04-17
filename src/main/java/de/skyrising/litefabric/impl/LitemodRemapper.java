@@ -46,6 +46,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
                 if (!"Lorg/spongepowered/asm/mixin/Mixin;".equals(classAnnotation.desc)) continue;
                 Set<String> shadowFields = new HashSet<>();
                 for (FieldNode field : node.fields) {
+                    if (field.invisibleAnnotations == null) continue;
                     for (AnnotationNode fieldAnnotation : field.invisibleAnnotations) {
                         if (!"Lorg/spongepowered/asm/mixin/Shadow;".equals(fieldAnnotation.desc)) continue;
                         shadowFields.add(field.name);
