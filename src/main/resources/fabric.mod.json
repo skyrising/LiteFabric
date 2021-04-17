@@ -17,9 +17,6 @@
   "entrypoints": {
     "preLaunch": [
       "de.skyrising.litefabric.impl.PreLaunch"
-    ],
-    "client": [
-      "de.skyrising.litefabric.impl.ClientInit"
     ]
   },
   "mixins": [

@@ -1,8 +1,6 @@
 package de.skyrising.litefabric.liteloader.core;
 
-import de.skyrising.litefabric.impl.core.ClientPluginChannelsImpl;
 import de.skyrising.litefabric.liteloader.CommonPluginChannelListener;
-import de.skyrising.litefabric.liteloader.PluginChannelListener;
 import net.minecraft.util.PacketByteBuf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -11,7 +9,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 public abstract class PluginChannels<T extends CommonPluginChannelListener> {
-    private static final Logger LOGGER = LogManager.getLogger();
+    private static final Logger LOGGER = LogManager.getLogger("LiteFabric|PluginChannels");
     protected final HashMap<String, List<T>> pluginChannels = new HashMap<>();
     protected final Set<String> remotePluginChannels = new HashSet<>();
     protected final List<T> listeners = new ArrayList<>();
@@ -46,7 +44,9 @@ public abstract class PluginChannels<T extends CommonPluginChannelListener> {
             byte[] bytes = new byte[data.readableBytes()];
             data.readBytes(bytes);
             String channels = new String(bytes, StandardCharsets.UTF_8);
-            remotePluginChannels.addAll(Arrays.asList(channels.split("\u0000")));
+            List<String> newChannels = Arrays.asList(channels.split("\u0000"));
+            LOGGER.info("Received REGISTER for {}", newChannels);
+            remotePluginChannels.addAll(newChannels);
         } catch (Exception e) {
             LOGGER.warn("Error decoding register packet", e);
         }

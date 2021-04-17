@@ -6,6 +6,7 @@
     "ClientLoginNetworkHandlerMixin",
     "ClientPlayNetworkHandlerMixin",
     "GameRendererMixin",
+    "KeyBindingAccessor",
     "MinecraftClientMixin",
     "MinecraftServerMixin"
   ]

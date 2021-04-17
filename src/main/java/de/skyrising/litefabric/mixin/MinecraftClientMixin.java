@@ -21,6 +21,11 @@ public class MinecraftClientMixin {
 
     @Shadow @Final private List<ResourcePack> resourcePacks;
 
+    @Inject(method = "initializeGame", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;options:Lnet/minecraft/client/options/GameOptions;", ordinal = 0, shift = At.Shift.AFTER))
+    private void litefabric$onGameInitStart(CallbackInfo ci) {
+        LiteFabric.getInstance().onClientInit();
+    }
+
     @Inject(method = "initializeGame", at = @At("RETURN"))
     private void litefabric$onGameInitDone(CallbackInfo ci) {
         LiteFabric.getInstance().onInitCompleted((MinecraftClient) (Object) this);
