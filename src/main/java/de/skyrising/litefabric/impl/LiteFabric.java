@@ -42,6 +42,7 @@ public class LiteFabric {
     private static final ListenerType<PluginChannelListener> PLUGIN_CHANNELS = new ListenerType<>(PluginChannelListener.class);
     private static final ListenerType<PostLoginListener> POST_LOGIN = new ListenerType<>(PostLoginListener.class);
     private static final ListenerType<PostRenderListener> POST_RENDER = new ListenerType<>(PostRenderListener.class);
+    private static final ListenerType<PreJoinGameListener> PRE_JOIN_GAME = new ListenerType<>(PreJoinGameListener.class);
     private static final ListenerType<PreRenderListener> PRE_RENDER = new ListenerType<>(PreRenderListener.class);
     private static final ListenerType<ServerCommandProvider> SERVER_COMMAND_PROVIDER = new ListenerType<>(ServerCommandProvider.class);
     private static final ListenerType<ShutdownListener> SHUTDOWN_LISTENER = new ListenerType<>(ShutdownListener.class);
@@ -194,39 +195,51 @@ public class LiteFabric {
     }
 
     public void onJoinGame(PacketListener packetListener, GameJoinS2CPacket joinPacket, ServerInfo serverData) {
+        ListenerType<PreJoinGameListener> preJoinGame = PRE_JOIN_GAME;
+        if (preJoinGame.hasListeners()) {
+            for (PreJoinGameListener listener : preJoinGame.getListeners()) {
+                if (!listener.onPreJoinGame(packetListener, joinPacket)) {
+                    LOGGER.warn("Ignoring game join cancellation by {}", listener.getName());
+                }
+            }
+        }
         clientPluginChannels.onJoinGame();
-        ListenerType<JoinGameListener> type = JOIN_GAME;
-        if (!type.hasListeners()) return;
-        for (JoinGameListener listener : type.getListeners()) {
-            listener.onJoinGame(packetListener, joinPacket, serverData, null);
+        ListenerType<JoinGameListener> joinGame = JOIN_GAME;
+        if (joinGame.hasListeners()) {
+            for (JoinGameListener listener : joinGame.getListeners()) {
+                listener.onJoinGame(packetListener, joinPacket, serverData, null);
+            }
         }
     }
 
     public void onInitServer(MinecraftServer server) {
-        if (SERVER_COMMAND_PROVIDER.hasListeners()) {
+        ListenerType<ServerCommandProvider> serverCommandProviders = SERVER_COMMAND_PROVIDER;
+        if (serverCommandProviders.hasListeners()) {
             ServerCommandManager manager = (ServerCommandManager) server.method_33193();
-            for (ServerCommandProvider provider : SERVER_COMMAND_PROVIDER.getListeners()) {
+            for (ServerCommandProvider provider : serverCommandProviders.getListeners()) {
                 provider.provideCommands(manager);
             }
         }
     }
 
     public void onPreRenderHUD() {
-        if (!HUD_RENDER.hasListeners()) return;
+        ListenerType<HUDRenderListener> hudRender = HUD_RENDER;
+        if (!hudRender.hasListeners()) return;
         Window window = new Window(MinecraftClient.getInstance());
         int width = window.getWidth();
         int height = window.getHeight();
-        for (HUDRenderListener listener : HUD_RENDER.getListeners()) {
+        for (HUDRenderListener listener : hudRender.getListeners()) {
             listener.onPreRenderHUD(width, height);
         }
     }
 
     public void onPostRenderHUD() {
-        if (!HUD_RENDER.hasListeners()) return;
+        ListenerType<HUDRenderListener> hudRender = HUD_RENDER;
+        if (!hudRender.hasListeners()) return;
         Window window = new Window(MinecraftClient.getInstance());
         int width = window.getWidth();
         int height = window.getHeight();
-        for (HUDRenderListener listener : HUD_RENDER.getListeners()) {
+        for (HUDRenderListener listener : hudRender.getListeners()) {
             listener.onPostRenderHUD(width, height);
         }
     }
