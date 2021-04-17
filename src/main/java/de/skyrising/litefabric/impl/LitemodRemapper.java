@@ -6,6 +6,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.Remapper;
+import org.objectweb.asm.tree.AnnotationNode;
 import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
 
@@ -21,6 +22,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     private final Map<String, Set<String>> superClasses = new HashMap<>();
     private final Map<String, Map<String, FieldDef>> fields = new HashMap<>();
     private final Map<String, Map<String, MethodDef>> methods = new HashMap<>();
+    private final Set<String> mixinClasses = new HashSet<>();
     private final String targetNamespace;
 
     public LitemodRemapper(TinyTree mappings, String targetNamespace) {
@@ -41,6 +43,14 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             superClasses.add(classesReverse.getOrDefault(itfName, itfName));
         }
         this.superClasses.put(node.name, superClasses);
+        if (node.invisibleAnnotations != null) {
+            for (AnnotationNode ann : node.invisibleAnnotations) {
+                if ("Lorg/spongepowered/asm/mixin/Mixin;".equals(ann.desc)) {
+                    mixinClasses.add(node.name);
+                    break;
+                }
+            }
+        }
         return superClasses;
     }
 
@@ -70,11 +80,12 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     }
 
     private String mapFieldName0(String owner, String name, String descriptor) {
-        if (owner == null) throw new NullPointerException("Are you stupid, Mixin?");
         if (!classes.containsKey(owner) && classesReverse.containsKey(owner)) {
             owner = unmap(owner);
             descriptor = unmapDesc(descriptor);
         }
+        // don't traverse super classes of mixins or else @Shadow fields can be remapped incorrectly
+        if (mixinClasses.contains(owner)) return null;
         Map<String, FieldDef> fieldMap = fields.computeIfAbsent(owner, this::computeFields);
         if (fieldMap != null) {
             FieldDef fieldDef = fieldMap.get(name + descriptor);
