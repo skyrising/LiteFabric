@@ -46,8 +46,8 @@ public class LitemodRemapper extends Remapper implements IRemapper {
                 if (!"Lorg/spongepowered/asm/mixin/Mixin;".equals(classAnnotation.desc)) continue;
                 Set<String> shadowFields = new HashSet<>();
                 for (FieldNode field : node.fields) {
-                    if (field.invisibleAnnotations == null) continue;
-                    for (AnnotationNode fieldAnnotation : field.invisibleAnnotations) {
+                    if (field.visibleAnnotations == null) continue;
+                    for (AnnotationNode fieldAnnotation : field.visibleAnnotations) {
                         if (!"Lorg/spongepowered/asm/mixin/Shadow;".equals(fieldAnnotation.desc)) continue;
                         shadowFields.add(field.name);
                     }
@@ -90,7 +90,9 @@ public class LitemodRemapper extends Remapper implements IRemapper {
             descriptor = unmapDesc(descriptor);
         }
         // don't traverse super classes for @Shadow fields
-        if (shadowFields.containsKey(owner) && shadowFields.get(owner).contains(name)) return null;
+        if (shadowFields.containsKey(owner)) {
+            if (shadowFields.get(owner).contains(name)) return null;
+        }
         Map<String, FieldDef> fieldMap = fields.computeIfAbsent(owner, this::computeFields);
         if (fieldMap != null) {
             FieldDef fieldDef = fieldMap.get(name + descriptor);
