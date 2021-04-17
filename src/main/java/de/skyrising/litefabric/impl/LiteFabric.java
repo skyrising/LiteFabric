@@ -98,10 +98,20 @@ public class LiteFabric {
         if (frozen) return;
         frozen = true;
         LitemodMixinService.checkSelect();
+        switch (mods.size()) {
+            case 0:
+                LOGGER.info("No litemods found");
+                break;
+            case 1:
+                LOGGER.info("Loading 1 mod: {}", mods.values().iterator().next());
+                break;
+            default:
+                LOGGER.info("Loaded {} mods: {}", mods.size(), mods.values());
+        }
     }
 
     public void onClientInit() {
-        LOGGER.info("Initializing {} mod{}: {}", mods.size(), mods.size() == 1 ? "" : "s", mods.values());
+        LOGGER.info("Initializing litemods");
         File configPath = FabricLoader.getInstance().getConfigDirectory();
         for (LitemodContainer mod : mods.values()) {
             LiteMod instance = mod.init(configPath);
