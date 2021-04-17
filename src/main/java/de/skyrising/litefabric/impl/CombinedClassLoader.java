@@ -25,11 +25,9 @@ class CombinedClassLoader extends SecureClassLoader {
 
     CombinedClassLoader() {
         super(findParent());
-        System.out.println(getParent());
         try {
             ClassLoader urlLoader = ((ClassLoader) urlLoaderField.get(knotClassLoader));
             UnsafeUtils.setParent(urlLoader, this);
-            System.out.println(urlLoader.getParent());
         } catch (IllegalAccessException e) {
             throw new RuntimeException(e);
         }

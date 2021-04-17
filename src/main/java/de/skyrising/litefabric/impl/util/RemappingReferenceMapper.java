@@ -1,5 +1,7 @@
 package de.skyrising.litefabric.impl.util;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.Type;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
 import org.spongepowered.asm.mixin.injection.struct.MemberInfo;
@@ -10,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class RemappingReferenceMapper implements IClassReferenceMapper, IReferenceMapper {
+    private static final Logger LOGGER = LogManager.getLogger();
     final static ThreadLocal<String> targetClass = new ThreadLocal<>();
 
     private final IReferenceMapper refMap;
@@ -81,7 +84,7 @@ public final class RemappingReferenceMapper implements IClassReferenceMapper, IR
             MemberInfo info = MemberInfo.parse(remapped, null, null);
             if (info.getOwner() == null) {
                 String target = targetClass.get();
-                System.out.println("No owner: " + info + ", guessing " + target);
+                LOGGER.debug("No owner: {}, guessing {}", info, target);
                 if (target != null) {
                     info = (MemberInfo) info.move(target);
                     cache = false;

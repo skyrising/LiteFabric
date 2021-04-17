@@ -2,8 +2,6 @@ package de.skyrising.litefabric.impl;
 
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.mapping.tree.*;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.commons.Remapper;
 import org.objectweb.asm.tree.AnnotationNode;
@@ -15,7 +13,6 @@ import java.io.InputStream;
 import java.util.*;
 
 public class LitemodRemapper extends Remapper implements IRemapper {
-    private static final Logger LOGGER = LogManager.getLogger();
     private static final String SOURCE_NAMESPACE = "official";
     private final Map<String, ClassDef> classes = new HashMap<>();
     private final Map<String, String> classesReverse = new HashMap<>();
