@@ -13,6 +13,7 @@ import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.launch.common.MappingConfiguration;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ServerInfo;
+import net.minecraft.client.util.Window;
 import net.minecraft.entity.Entity;
 import net.minecraft.network.listener.PacketListener;
 import net.minecraft.network.packet.s2c.login.LoginSuccessS2CPacket;
@@ -35,6 +36,7 @@ public class LiteFabric {
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric");
     private static final LiteFabric INSTANCE = new LiteFabric();
     private static final Map<Class<?>, ListenerType<?>> LISTENER_TYPES = new HashMap<>();
+    private static final ListenerType<HUDRenderListener> HUD_RENDER = new ListenerType<>(HUDRenderListener.class);
     private static final ListenerType<InitCompleteListener> INIT_COMPLETE = new ListenerType<>(InitCompleteListener.class);
     private static final ListenerType<JoinGameListener> JOIN_GAME = new ListenerType<>(JoinGameListener.class);
     private static final ListenerType<PluginChannelListener> PLUGIN_CHANNELS = new ListenerType<>(PluginChannelListener.class);
@@ -206,6 +208,26 @@ public class LiteFabric {
             for (ServerCommandProvider provider : SERVER_COMMAND_PROVIDER.getListeners()) {
                 provider.provideCommands(manager);
             }
+        }
+    }
+
+    public void onPreRenderHUD() {
+        if (!HUD_RENDER.hasListeners()) return;
+        Window window = new Window(MinecraftClient.getInstance());
+        int width = window.getWidth();
+        int height = window.getHeight();
+        for (HUDRenderListener listener : HUD_RENDER.getListeners()) {
+            listener.onPreRenderHUD(width, height);
+        }
+    }
+
+    public void onPostRenderHUD() {
+        if (!HUD_RENDER.hasListeners()) return;
+        Window window = new Window(MinecraftClient.getInstance());
+        int width = window.getWidth();
+        int height = window.getHeight();
+        for (HUDRenderListener listener : HUD_RENDER.getListeners()) {
+            listener.onPostRenderHUD(width, height);
         }
     }
 

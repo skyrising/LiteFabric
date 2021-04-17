@@ -23,4 +23,14 @@ public class GameRendererMixin {
     private void litefabric$onPostRenderEntities(int pass, float partialTicks, long timeSlice, CallbackInfo ci) {
         LiteFabric.getInstance().onPostRenderEntities(partialTicks);
     }
+
+    @Inject(method = "method_30211", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(F)V"))
+    private void litefabric$onPreRenderHud(float partialTicks, long timeSlice, CallbackInfo ci) {
+        LiteFabric.getInstance().onPreRenderHUD();
+    }
+
+    @Inject(method = "method_30211", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(F)V", shift = At.Shift.AFTER))
+    private void litefabric$onPostRenderHud(float partialTicks, long timeSlice, CallbackInfo ci) {
+        LiteFabric.getInstance().onPostRenderHUD();
+    }
 }
