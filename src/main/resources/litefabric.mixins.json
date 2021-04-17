@@ -6,6 +6,7 @@
     "ClientLoginNetworkHandlerMixin",
     "ClientPlayNetworkHandlerMixin",
     "GameRendererMixin",
-    "MinecraftClientMixin"
+    "MinecraftClientMixin",
+    "MinecraftServerMixin"
   ]
 }

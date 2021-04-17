@@ -17,6 +17,8 @@ import net.minecraft.entity.Entity;
 import net.minecraft.network.listener.PacketListener;
 import net.minecraft.network.packet.s2c.login.LoginSuccessS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
+import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.command.ServerCommandManager;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.mixin.MixinEnvironment;
@@ -39,6 +41,7 @@ public class LiteFabric {
     private static final ListenerType<PostLoginListener> POST_LOGIN = new ListenerType<>(PostLoginListener.class);
     private static final ListenerType<PostRenderListener> POST_RENDER = new ListenerType<>(PostRenderListener.class);
     private static final ListenerType<PreRenderListener> PRE_RENDER = new ListenerType<>(PreRenderListener.class);
+    private static final ListenerType<ServerCommandProvider> SERVER_COMMAND_PROVIDER = new ListenerType<>(ServerCommandProvider.class);
     private static final ListenerType<ShutdownListener> SHUTDOWN_LISTENER = new ListenerType<>(ShutdownListener.class);
     private static final ListenerType<Tickable> TICKABLE = new ListenerType<>(Tickable.class);
     static final FileSystem TMP_FILES = Jimfs.newFileSystem();
@@ -184,6 +187,15 @@ public class LiteFabric {
         if (!type.hasListeners()) return;
         for (JoinGameListener listener : type.getListeners()) {
             listener.onJoinGame(packetListener, joinPacket, serverData, null);
+        }
+    }
+
+    public void onInitServer(MinecraftServer server) {
+        if (SERVER_COMMAND_PROVIDER.hasListeners()) {
+            ServerCommandManager manager = (ServerCommandManager) server.method_33193();
+            for (ServerCommandProvider provider : SERVER_COMMAND_PROVIDER.getListeners()) {
+                provider.provideCommands(manager);
+            }
         }
     }
 
