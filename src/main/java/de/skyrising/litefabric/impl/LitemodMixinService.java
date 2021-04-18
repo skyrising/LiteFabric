@@ -31,7 +31,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-public class LitemodMixinService extends MixinServiceAbstract implements IClassBytecodeProvider {
+public class LitemodMixinService extends MixinServiceAbstract implements IClassBytecodeProvider, IClassProvider {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Map<String, Config> allLitemodConfigs = new HashMap<>();
     private static final Map<Config, String> refMaps = new LinkedHashMap<>();
@@ -60,8 +60,10 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
     }
 
     private final LitemodClassProvider classLoader;
+    private final IMixinService parent;
 
     public LitemodMixinService(LitemodClassProvider classLoader) {
+        this.parent = MixinService.getService();
         this.classLoader = classLoader;
     }
 
@@ -77,7 +79,7 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
 
     @Override
     public IClassProvider getClassProvider() {
-        return null;
+        return this;
     }
 
     @Override
@@ -87,27 +89,27 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
 
     @Override
     public ITransformerProvider getTransformerProvider() {
-        return null;
+        return parent.getTransformerProvider();
     }
 
     @Override
     public IClassTracker getClassTracker() {
-        return null;
+        return parent.getClassTracker();
     }
 
     @Override
     public IMixinAuditTrail getAuditTrail() {
-        return null;
+        return parent.getAuditTrail();
     }
 
     @Override
     public Collection<String> getPlatformAgents() {
-        return null;
+        return parent.getPlatformAgents();
     }
 
     @Override
     public IContainerHandle getPrimaryContainer() {
-        return null;
+        return parent.getPrimaryContainer();
     }
 
     @Override
@@ -221,5 +223,25 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
     public ClassNode getClassNode(String name, boolean runTransformers) {
         if (!runTransformers) throw new UnsupportedOperationException();
         return classLoader.getClassNode(name);
+    }
+
+    @Override
+    public URL[] getClassPath() {
+        return new URL[0];
+    }
+
+    @Override
+    public Class<?> findClass(String name) throws ClassNotFoundException {
+        return LiteFabric.getInstance().combinedClassLoader.loadClass(name);
+    }
+
+    @Override
+    public Class<?> findClass(String name, boolean initialize) throws ClassNotFoundException {
+        return Class.forName(name, initialize, LiteFabric.getInstance().combinedClassLoader);
+    }
+
+    @Override
+    public Class<?> findAgentClass(String name, boolean initialize) throws ClassNotFoundException {
+        throw new UnsupportedOperationException();
     }
 }

@@ -46,6 +46,23 @@ class CombinedClassLoader extends SecureClassLoader {
     }
 
     @Override
+    protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+        synchronized (getClassLoadingLock(name)) {
+            Class<?> c = findLoadedClass(name);
+            if (c != null) return c;
+            for (LitemodClassProvider loader : classLoaders) {
+                byte[] bytes = loader.getClassBytes(name);
+                if (bytes == null) continue;
+                c = defineClass(name, bytes, 0, bytes.length);
+                break;
+            }
+            if (c == null) c = knotClassLoader.loadClass(name);
+            if (resolve) resolveClass(c);
+            return c;
+        }
+    }
+
+    @Override
     protected URL findResource(String name) {
         for (LitemodClassProvider loader : classLoaders) {
             URL resource = loader.findResource(name);
