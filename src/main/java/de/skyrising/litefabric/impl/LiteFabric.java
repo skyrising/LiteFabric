@@ -45,7 +45,8 @@ public class LiteFabric {
     private static final ListenerType<PreJoinGameListener> PRE_JOIN_GAME = new ListenerType<>(PreJoinGameListener.class);
     private static final ListenerType<PreRenderListener> PRE_RENDER = new ListenerType<>(PreRenderListener.class);
     private static final ListenerType<ServerCommandProvider> SERVER_COMMAND_PROVIDER = new ListenerType<>(ServerCommandProvider.class);
-    private static final ListenerType<ShutdownListener> SHUTDOWN_LISTENER = new ListenerType<>(ShutdownListener.class);
+    private static final ListenerType<ShutdownListener> SHUTDOWN = new ListenerType<>(ShutdownListener.class);
+    private static final ListenerType<ViewportListener> VIEWPORT = new ListenerType<>(ViewportListener.class);
     private static final ListenerType<Tickable> TICKABLE = new ListenerType<>(Tickable.class);
     static final FileSystem TMP_FILES = Jimfs.newFileSystem();
     private final LitemodRemapper remapper;
@@ -115,6 +116,7 @@ public class LiteFabric {
 
     public void onClientInit() {
         LOGGER.info("Initializing litemods");
+        onResize();
         File configPath = FabricLoader.getInstance().getConfigDirectory();
         for (LitemodContainer mod : mods.values()) {
             LiteMod instance = mod.init(configPath);
@@ -154,7 +156,7 @@ public class LiteFabric {
     }
 
     private void onShutdown() {
-        ListenerType<ShutdownListener> type = SHUTDOWN_LISTENER;
+        ListenerType<ShutdownListener> type = SHUTDOWN;
         if (!type.hasListeners()) return;
         for (ShutdownListener listener : type.getListeners()) {
             listener.onShutDown();
@@ -241,6 +243,25 @@ public class LiteFabric {
         int height = window.getHeight();
         for (HUDRenderListener listener : hudRender.getListeners()) {
             listener.onPostRenderHUD(width, height);
+        }
+    }
+
+    private boolean wasFullscreen;
+    public void onResize() {
+        MinecraftClient client = MinecraftClient.getInstance();
+        boolean fullscreen = client.isRunning(); // incorrect yarn name
+        boolean fullscreenChanged = fullscreen != wasFullscreen;
+        if (fullscreenChanged) wasFullscreen = fullscreen;
+        ListenerType<ViewportListener> viewportListeners = VIEWPORT;
+        if (!viewportListeners.hasListeners()) return;
+        Window window = new Window(client);
+        int width = client.width;
+        int height = client.height;
+        for (ViewportListener listener : viewportListeners.getListeners()) {
+            if (fullscreenChanged) {
+                listener.onFullScreenToggled(fullscreen);
+            }
+            listener.onViewportResized(window, width, height);
         }
     }
 

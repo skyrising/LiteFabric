@@ -42,4 +42,9 @@ public class MinecraftClientMixin {
     private void litefabric$addResourcePacks(CallbackInfo ci) {
         resourcePacks.addAll(LiteFabric.getInstance().getMods());
     }
+
+    @Inject(method = "method_28810", at = @At("HEAD"))
+    private void litefabric$onResize(CallbackInfo ci) {
+        LiteFabric.getInstance().onResize();
+    }
 }
