@@ -8,6 +8,7 @@ import de.skyrising.litefabric.liteloader.*;
 import de.skyrising.litefabric.liteloader.core.ClientPluginChannels;
 import de.skyrising.litefabric.liteloader.core.LiteLoader;
 import de.skyrising.litefabric.liteloader.util.Input;
+import de.skyrising.litefabric.mixin.MinecraftClientAccessor;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.launch.common.MappingConfiguration;
@@ -152,7 +153,7 @@ public class LiteFabric {
                 tickable.onTick(client, partialTicks, inGame, clock);
             }
         }
-        if (!client.isRunning()) onShutdown();
+        if (!((MinecraftClientAccessor) client).isRunning()) onShutdown();
     }
 
     private void onShutdown() {
