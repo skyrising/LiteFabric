@@ -1,6 +1,8 @@
 package de.skyrising.litefabric.impl;
 
 import net.fabricmc.loader.api.FabricLoader;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.Opcodes;
@@ -14,12 +16,15 @@ import org.spongepowered.asm.util.Bytecode;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.*;
 import java.util.HashMap;
 import java.util.Map;
 
 class LitemodClassProvider {
+    private static final Logger LOGGER = LogManager.getLogger("LiteFabric|ClassProvider");
     private static final boolean DUMP = true;
 
     private final FileSystem fileSystem;
@@ -105,7 +110,17 @@ class LitemodClassProvider {
                     Files.createDirectories(out.getParent());
                     Files.copy(path, out, StandardCopyOption.REPLACE_EXISTING);
                 }
-                return path.toUri().toURL();
+                URI uri = path.toUri();
+                String uriStr = uri.toString();
+                if (uriStr.contains("%25")) {
+                    uriStr = uriStr.replaceAll("%25", "%");
+                    try {
+                        uri = new URI(uriStr);
+                    } catch (URISyntaxException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+                return uri.toURL();
             }
         } catch (IOException e) {
             throw new UncheckedIOException(e);
