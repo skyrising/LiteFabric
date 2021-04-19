@@ -135,6 +135,7 @@ public class LitemodContainer implements ResourcePack {
             return Files.list(getPath("assets")).filter(Files::isDirectory)
                     .map(Path::getFileName)
                     .map(Path::toString)
+                    .map(s -> s.endsWith("/") ? s.substring(0, s.length() - 1) : s)
                     .collect(Collectors.toSet());
         } catch (IOException e) {
             return Collections.emptySet();
