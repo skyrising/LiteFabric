@@ -55,7 +55,7 @@ public class LiteFabric {
     private final ClientPluginChannelsImpl clientPluginChannels = new ClientPluginChannelsImpl();
     final CombinedClassLoader combinedClassLoader = new CombinedClassLoader();
     private final Map<LitemodContainer, LiteMod> modInstances = new HashMap<>();
-    public Input input = new InputImpl();
+    private InputImpl input = new InputImpl();
     private boolean frozen = false;
 
     private LiteFabric() {
@@ -118,6 +118,7 @@ public class LiteFabric {
     public void onClientInit() {
         LOGGER.info("Initializing litemods");
         onResize();
+        input.load();
         File configPath = FabricLoader.getInstance().getConfigDirectory();
         for (LitemodContainer mod : mods.values()) {
             LiteMod instance = mod.init(configPath);
@@ -145,6 +146,7 @@ public class LiteFabric {
     }
 
     public void onTick(MinecraftClient client, boolean clock, float partialTicks) {
+        input.onTick();
         Entity cameraEntity = client.getCameraEntity();
         boolean inGame = cameraEntity != null && cameraEntity.world != null;
         ListenerType<Tickable> type = TICKABLE;
@@ -157,6 +159,7 @@ public class LiteFabric {
     }
 
     private void onShutdown() {
+        input.save();
         ListenerType<ShutdownListener> type = SHUTDOWN;
         if (!type.hasListeners()) return;
         for (ShutdownListener listener : type.getListeners()) {
@@ -268,6 +271,10 @@ public class LiteFabric {
 
     public ClientPluginChannels getClientPluginChannels() {
         return clientPluginChannels;
+    }
+
+    public Input getInput() {
+        return input;
     }
 
     public LitemodRemapper getRemapper() {

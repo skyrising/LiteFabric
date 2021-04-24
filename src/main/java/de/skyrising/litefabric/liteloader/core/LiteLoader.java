@@ -15,7 +15,7 @@ public final class LiteLoader {
     }
 
     public static Input getInput() {
-        return LiteFabric.getInstance().input;
+        return LiteFabric.getInstance().getInput();
     }
 
     public static File getCommonConfigFolder() {
