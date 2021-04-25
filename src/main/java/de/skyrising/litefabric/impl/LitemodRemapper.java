@@ -148,6 +148,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     }
 
     private Set<String> getSuperClasses(String cls) {
+        if (cls == null) return Collections.emptySet();
         if (superClasses.containsKey(cls)) return superClasses.get(cls);
         InputStream in = FabricLauncherBase.getLauncher().getResourceAsStream(map(cls) + ".class");
         if (in == null) return Collections.emptySet();

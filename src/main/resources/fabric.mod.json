@@ -17,6 +17,9 @@
   "entrypoints": {
     "preLaunch": [
       "de.skyrising.litefabric.impl.PreLaunch"
+    ],
+    "modmenu": [
+      "de.skyrising.litefabric.impl.util.ModMenuCompat"
     ]
   },
   "mixins": [

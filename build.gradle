@@ -16,6 +16,7 @@ if (project.mod_version.endsWith('-dev')) {
 version = project.mod_version
 
 repositories {
+	mavenLocal()
 	maven {
 		name = 'Fabric'
 		url = 'https://maven.fabricmc.net/'
@@ -41,6 +42,7 @@ dependencies {
 	minecraft "com.mojang:minecraft:${project.minecraft_version}"
 	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
 	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "de.skyrising:modmenu:1.16.9+1.12.2.385c15f"
 }
 
 processResources {

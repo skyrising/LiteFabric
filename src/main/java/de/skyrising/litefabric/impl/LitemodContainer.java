@@ -29,6 +29,11 @@ import java.util.zip.ZipError;
 public class LitemodContainer implements ResourcePack {
     public final ModMetadata meta;
     public final List<String> entryPoints;
+    public final Set<String> configGuiCandidates = new TreeSet<>((a, b) -> {
+        if (a == null) return 1;
+        if (a.length() == b.length()) return a.compareTo(b);
+        return a.length() - b.length();
+    });
     private final FileSystemUtil.FileSystemDelegate fileSystem;
     final LitemodClassProvider classProvider;
 
@@ -36,7 +41,7 @@ public class LitemodContainer implements ResourcePack {
         this.meta = meta;
         this.entryPoints = Collections.unmodifiableList(entryPoints);
         this.fileSystem = fileSystem;
-        this.classProvider = new LitemodClassProvider(fileSystem.get(), remapper);
+        this.classProvider = new LitemodClassProvider(this, fileSystem.get(), remapper);
     }
 
     LitemodClassProvider getClassProvider() {

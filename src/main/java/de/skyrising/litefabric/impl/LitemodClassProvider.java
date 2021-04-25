@@ -20,18 +20,24 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.*;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 class LitemodClassProvider {
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric|ClassProvider");
+    private static final String SCREEN_CLASS = classNameOf("class_5641");
+    private static final Set<String> CONFIG_GUI_SUPER_CLASSES = new HashSet<>(Arrays.asList(
+        "fi/dy/masa/malilib/gui/GuiConfigsBase",
+        SCREEN_CLASS
+    ));
     private static final boolean DUMP = true;
 
+    private final LitemodContainer mod;
     private final FileSystem fileSystem;
     private final LitemodRemapper remapper;
     private final Map<String, byte[]> classByteCache = new HashMap<>();
 
-    public LitemodClassProvider(FileSystem fileSystem, LitemodRemapper remapper) {
+    public LitemodClassProvider(LitemodContainer mod, FileSystem fileSystem, LitemodRemapper remapper) {
+        this.mod = mod;
         this.fileSystem = fileSystem;
         this.remapper = remapper;
     }
@@ -56,6 +62,9 @@ class LitemodClassProvider {
         ClassNode remapped = new ClassNode();
         ClassRemapper clsRemapper = new ClassRemapper(remapped, remapper);
         raw.accept(clsRemapper);
+        if (isConfigGuiCandidate(remapped)) {
+            mod.configGuiCandidates.add(remapped.name);
+        }
         if (FabricLoader.getInstance().isDevelopmentEnvironment()) {
             if (Annotations.getInvisible(remapped, Mixin.class) != null) {
                 for (MethodNode method : remapped.methods) {
@@ -79,6 +88,12 @@ class LitemodClassProvider {
             }
         }
         return bytes;
+    }
+
+    private static boolean isConfigGuiCandidate(ClassNode node) {
+        if (Annotations.getInvisible(node, Mixin.class) != null) return false;
+        if ((node.access & (Opcodes.ACC_PUBLIC | Opcodes.ACC_ABSTRACT)) != Opcodes.ACC_PUBLIC) return false;
+        return CONFIG_GUI_SUPER_CLASSES.contains(node.superName);
     }
 
     ClassNode getClassNode(String name) {
@@ -126,5 +141,9 @@ class LitemodClassProvider {
             throw new UncheckedIOException(e);
         }
         return null;
+    }
+
+    private static String classNameOf(String intermediary) {
+        return FabricLoader.getInstance().getMappingResolver().mapClassName("intermediary", "net.minecraft." + intermediary).replace('.', '/');
     }
 }

@@ -13,6 +13,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.launch.common.MappingConfiguration;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.network.ServerInfo;
 import net.minecraft.client.util.Window;
 import net.minecraft.entity.Entity;
@@ -29,6 +30,9 @@ import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
@@ -279,6 +283,47 @@ public class LiteFabric {
 
     public LitemodRemapper getRemapper() {
         return remapper;
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <S extends Screen> S constructScreen(Class<S> cls, Screen parent) {
+        for (Constructor<?> constr : cls.getConstructors()) {
+            try {
+                Class<?>[] paramTypes = constr.getParameterTypes();
+                if (paramTypes.length == 0) {
+                    S s = (S) constr.newInstance();
+                    try {
+                        Method setParent = s.getClass().getMethod("setParent", Screen.class);
+                        setParent.invoke(s, parent);
+                    } catch (NoSuchMethodException| InvocationTargetException ignored) {}
+                    return s;
+                } else if (paramTypes.length == 1 && paramTypes[0] == Screen.class) {
+                    return (S) constr.newInstance(parent);
+                }
+            } catch (ReflectiveOperationException e1) {
+                e1.printStackTrace();
+            }
+        }
+        return null;
+    }
+
+    public Screen getConfigScreenForMod(String id, Screen parent) {
+        LitemodContainer container = mods.get(id);
+        if (container == null) return null;
+        for (String className : container.configGuiCandidates) {
+            className = className.replace('/', '.');
+            try {
+                @SuppressWarnings("unchecked")
+                Class<? extends Screen> cls = (Class<? extends Screen>) Class.forName(className);
+                Screen s = constructScreen(cls, parent);
+                if (s != null) {
+                    return s;
+                }
+            } catch (ReflectiveOperationException e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 
     private static void deleteDebugOut() {
