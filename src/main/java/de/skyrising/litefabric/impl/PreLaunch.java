@@ -2,6 +2,7 @@ package de.skyrising.litefabric.impl;
 
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
+import org.apache.logging.log4j.LogManager;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -15,6 +16,7 @@ import java.util.Optional;
 public class PreLaunch implements PreLaunchEntrypoint {
     @Override
     public void onPreLaunch() {
+        long start = System.nanoTime();
         FabricLoader loader = FabricLoader.getInstance();
         Path gameDir = loader.getGameDir();
         Path modsDir = gameDir.resolve("mods");
@@ -29,6 +31,9 @@ public class PreLaunch implements PreLaunchEntrypoint {
         LiteFabric liteFabric = LiteFabric.getInstance();
         liteFabric.addMods(mods);
         liteFabric.preLaunch();
+        if (LiteFabric.PROFILE_STARTUP) {
+            LogManager.getFormatterLogger("LiteFabric|PreLaunch").info("preLaunch took %.3fms", (System.nanoTime() - start) / 1e6);
+        }
     }
 
     private static List<LitemodContainer> prepareMods(Path modsDir) throws IOException {

@@ -40,7 +40,6 @@ public class LitemodRemapper extends Remapper implements IRemapper {
         for (String itfName : node.interfaces) {
             superClasses.add(classesReverse.getOrDefault(itfName, itfName));
         }
-        this.superClasses.put(node.name, superClasses);
         if (node.invisibleAnnotations != null) {
             for (AnnotationNode classAnnotation : node.invisibleAnnotations) {
                 if (!"Lorg/spongepowered/asm/mixin/Mixin;".equals(classAnnotation.desc)) continue;
@@ -56,7 +55,7 @@ public class LitemodRemapper extends Remapper implements IRemapper {
                 break;
             }
         }
-        return superClasses;
+        return addSuperClassMapping(node.name, superClasses);
     }
 
     @Override
@@ -85,19 +84,32 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     }
 
     private String mapFieldName0(String owner, String name, String descriptor) {
-        if (!classes.containsKey(owner) && classesReverse.containsKey(owner)) {
+        if (isUnmappedField(owner)) return null;
+        boolean knownClass = classes.containsKey(owner);
+        if (!knownClass && classesReverse.containsKey(owner)) {
+            knownClass = true;
             owner = unmap(owner);
             descriptor = unmapDesc(descriptor);
         }
         // don't traverse super classes for @Shadow fields
-        if (shadowFields.containsKey(owner)) {
+        if (!knownClass && shadowFields.containsKey(owner)) {
             if (shadowFields.get(owner).contains(name)) return null;
         }
-        Map<String, FieldDef> fieldMap = fields.computeIfAbsent(owner, this::computeFields);
-        if (fieldMap != null) {
-            FieldDef fieldDef = fieldMap.get(name + descriptor);
-            if (fieldDef != null) return fieldDef.getName(targetNamespace);
+        if (knownClass) {
+            Map<String, FieldDef> fieldMap = fields.computeIfAbsent(owner, this::computeFields);
+            if (fieldMap != null) {
+                FieldDef fieldDef = fieldMap.get(name + descriptor);
+                if (fieldDef != null) return fieldDef.getName(targetNamespace);
+            }
         }
+        return mapFieldNameFromSupers(owner, name, descriptor);
+    }
+
+    private boolean isUnmappedField(String owner) {
+        return owner == null || owner.isEmpty() || owner.charAt(0) == '[';
+    }
+
+    private String mapFieldNameFromSupers(String owner, String name, String descriptor) {
         Set<String> superClassNames = getSuperClasses(owner);
         for (String superClass : superClassNames) {
             String superMap = mapFieldName0(superClass, name, descriptor);
@@ -110,7 +122,6 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     public String mapFieldName(String owner, String name, String descriptor) {
         String mapped = mapFieldName0(owner, name, descriptor);
         if (mapped != null) return mapped;
-        //LOGGER.warn("No mapping for {} ({}) {}{}", classes.get(owner).getName(targetNamespace), owner, name, descriptor);
         return name;
     }
 
@@ -121,16 +132,28 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     }
 
     private String mapMethodName0(String owner, String name, String descriptor) {
-        if (!classes.containsKey(owner) && classesReverse.containsKey(owner)) {
+        if (isUnmappedMethod(owner, name)) return null;
+        boolean knownClass = classes.containsKey(owner);
+        if (!knownClass && classesReverse.containsKey(owner)) {
+            knownClass = true;
             owner = unmap(owner);
             descriptor = unmapDesc(descriptor);
         }
-        if (name.startsWith("<")) return name;
-        Map<String, MethodDef> methodMap = methods.computeIfAbsent(owner, this::computeMethods);
-        if (methodMap != null) {
-            MethodDef methodDef = methodMap.get(name + descriptor);
-            if (methodDef != null) return methodDef.getName(targetNamespace);
+        if (knownClass) {
+            Map<String, MethodDef> methodMap = methods.computeIfAbsent(owner, this::computeMethods);
+            if (methodMap != null) {
+                MethodDef methodDef = methodMap.get(name + descriptor);
+                if (methodDef != null) return methodDef.getName(targetNamespace);
+            }
         }
+        return mapMethodNameFromSupers(owner, name, descriptor);
+    }
+
+    private static boolean isUnmappedMethod(String owner, String name) {
+        return name.isEmpty() || name.charAt(0) == '<' || owner == null || owner.isEmpty() || owner.charAt(0) == '[';
+    }
+
+    private String mapMethodNameFromSupers(String owner, String name, String descriptor) {
         Set<String> superClassNames = getSuperClasses(owner);
         for (String superClass : superClassNames) {
             String superMap = mapMethodName0(superClass, name, descriptor);
@@ -143,7 +166,6 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     public String mapMethodName(String owner, String name, String descriptor) {
         String mapped = mapMethodName0(owner, name, descriptor);
         if (mapped != null) return mapped;
-        //LOGGER.warn("No mapping for {} ({}) {}{}", classes.get(owner).getName(targetNamespace), owner, name, descriptor);
         return name;
     }
 
@@ -151,7 +173,9 @@ public class LitemodRemapper extends Remapper implements IRemapper {
         if (cls == null) return Collections.emptySet();
         if (superClasses.containsKey(cls)) return superClasses.get(cls);
         InputStream in = FabricLauncherBase.getLauncher().getResourceAsStream(map(cls) + ".class");
-        if (in == null) return Collections.emptySet();
+        if (in == null) {
+            return addSuperClassMapping(cls, Collections.emptySet());
+        }
         try {
             ClassReader reader = new ClassReader(in);
             ClassNode node = new ClassNode();
@@ -160,7 +184,12 @@ public class LitemodRemapper extends Remapper implements IRemapper {
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return Collections.emptySet();
+        return addSuperClassMapping(cls, Collections.emptySet());
+    }
+
+    private Set<String> addSuperClassMapping(String cls, Set<String> supers) {
+        this.superClasses.put(cls, supers);
+        return supers;
     }
 
     @Override
@@ -172,30 +201,23 @@ public class LitemodRemapper extends Remapper implements IRemapper {
     @Override
     public String unmapDesc(String old) {
         if (old == null) return null;
-        int lastL = old.indexOf(76);
+        int lastL = old.indexOf('L');
         int lastSemi = -1;
-        if (lastL < 0) {
-            return old;
-        } else {
-            StringBuilder builder;
-            for(builder = new StringBuilder((int)((double)old.length() * 1.2D)); lastL >= 0; lastL = old.indexOf(76, lastSemi + 1)) {
-                if (lastSemi + 1 < lastL) {
-                    builder.append(old, lastSemi + 1, lastL);
-                }
+        if (lastL < 0) return old;
+        int oldLength = old.length();
+        StringBuilder builder = new StringBuilder(oldLength + oldLength / 4);
+        while (lastL >= 0) {
+            if (lastSemi + 1 < lastL) builder.append(old, lastSemi + 1, lastL);
 
-                lastSemi = old.indexOf(59, lastL + 1);
-                if (lastSemi == -1) {
-                    return old;
-                }
+            lastSemi = old.indexOf(';', lastL + 1);
+            if (lastSemi == -1) return old;
 
-                builder.append('L').append(unmap(old.substring(lastL + 1, lastSemi))).append(';');
-            }
-
-            if (lastSemi + 1 < old.length()) {
-                builder.append(old, lastSemi + 1, old.length());
-            }
-
-            return builder.toString();
+            builder.append('L').append(unmap(old.substring(lastL + 1, lastSemi))).append(';');
+            lastL = old.indexOf('L', lastSemi + 1);
         }
+
+        if (lastSemi + 1 < old.length()) builder.append(old, lastSemi + 1, old.length());
+
+        return builder.toString();
     }
 }

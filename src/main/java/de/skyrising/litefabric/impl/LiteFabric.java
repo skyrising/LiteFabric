@@ -38,6 +38,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 
 public class LiteFabric {
+    public static final boolean PROFILE_STARTUP = false;
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric");
     private static final LiteFabric INSTANCE = new LiteFabric();
     private static final Map<Class<?>, ListenerType<?>> LISTENER_TYPES = new HashMap<>();
@@ -59,7 +60,7 @@ public class LiteFabric {
     private final ClientPluginChannelsImpl clientPluginChannels = new ClientPluginChannelsImpl();
     final CombinedClassLoader combinedClassLoader = new CombinedClassLoader();
     private final Map<LitemodContainer, LiteMod> modInstances = new HashMap<>();
-    private InputImpl input = new InputImpl();
+    private final InputImpl input = new InputImpl();
     private boolean frozen = false;
 
     private LiteFabric() {
@@ -307,7 +308,12 @@ public class LiteFabric {
         return null;
     }
 
+    private boolean logged = false;
     public Screen getConfigScreenForMod(String id, Screen parent) {
+        if (PROFILE_STARTUP && !logged) {
+            LitemodClassProvider.logTransformPerformance();
+            logged = true;
+        }
         LitemodContainer container = mods.get(id);
         if (container == null) return null;
         for (String className : container.configGuiCandidates) {
