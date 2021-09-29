@@ -16,14 +16,14 @@ public abstract class GameRendererMixin {
 
     @Shadow @Final private MinecraftClient client;
 
-    @Inject(method = "method_30227", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V"))
+    @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;push(Ljava/lang/String;)V"))
     private void litefabric$onRenderWorld(float partialTicks, long timeSlice, CallbackInfo ci) {
         client.profiler.push("litefabric");
         LiteFabric.getInstance().onRenderWorld(partialTicks);
         client.profiler.pop();
     }
 
-    @Inject(method = "method_30227", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V"))
+    @Inject(method = "renderWorld", at = @At(value = "INVOKE", target = "Lnet/minecraft/util/profiler/Profiler;pop()V"))
     private void litefabric$onPostRender(float partialTicks, long timeSlice, CallbackInfo ci) {
         client.profiler.push("litefabric");
         method_30210(partialTicks, 0);

@@ -8,8 +8,8 @@ import de.skyrising.litefabric.liteloader.LiteMod;
 import net.fabricmc.loader.FabricLoader;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.util.FileSystemUtil;
-import net.minecraft.class_6055;
-import net.minecraft.class_6057;
+import net.minecraft.client.resource.metadata.ResourceMetadata;
+import net.minecraft.client.resource.metadata.ResourceMetadataRegistry;
 import net.minecraft.client.texture.TextureUtil;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.Identifier;
@@ -135,7 +135,7 @@ public class LitemodContainer implements ResourcePack {
     }
 
     @Override
-    public Set<String> method_31465() {
+    public Set<String> getNamespaces() {
         try {
             return Files.list(getPath("assets")).filter(Files::isDirectory)
                     .map(Path::getFileName)
@@ -149,7 +149,7 @@ public class LitemodContainer implements ResourcePack {
 
     @Nullable
     @Override
-    public <T extends class_6055> T method_31461(class_6057 parser, String section) throws IOException {
+    public <T extends ResourceMetadata> T parseMetadata(ResourceMetadataRegistry parser, String section) throws IOException {
         try {
             return parseJson(parser, this.openFile("pack.mcmeta"), section);
         } catch (NoSuchFileException e) {
@@ -157,12 +157,12 @@ public class LitemodContainer implements ResourcePack {
         }
     }
 
-    static <T extends class_6055> T parseJson(class_6057 parser, InputStream inputStream, String section) {
+    static <T extends ResourceMetadata> T parseJson(ResourceMetadataRegistry parser, InputStream inputStream, String section) {
         BufferedReader bufferedReader = null;
         try {
             bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             JsonObject jsonObject = (new JsonParser()).parse(bufferedReader).getAsJsonObject();
-            return parser.method_31530(section, jsonObject);
+            return parser.loadJson(section, jsonObject);
         } catch (RuntimeException var9) {
             throw new JsonParseException(var9);
         } finally {
@@ -171,8 +171,8 @@ public class LitemodContainer implements ResourcePack {
     }
 
     @Override
-    public BufferedImage method_31460() throws IOException {
-        return TextureUtil.method_31382(this.openFile("pack.png"));
+    public BufferedImage getIcon() throws IOException {
+        return TextureUtil.readImage(this.openFile("pack.png"));
     }
 
     @Override

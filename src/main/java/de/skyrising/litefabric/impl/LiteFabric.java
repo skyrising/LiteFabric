@@ -3,6 +3,8 @@ package de.skyrising.litefabric.impl;
 import com.google.common.jimfs.Jimfs;
 import com.mojang.realmsclient.dto.RealmsServer;
 import de.skyrising.litefabric.impl.core.ClientPluginChannelsImpl;
+import de.skyrising.litefabric.impl.modconfig.ConfigManager;
+import de.skyrising.litefabric.impl.modconfig.ConfigPanelScreen;
 import de.skyrising.litefabric.impl.util.InputImpl;
 import de.skyrising.litefabric.impl.util.ListenerHandle;
 import de.skyrising.litefabric.impl.util.TargetRememberingExtension;
@@ -12,6 +14,7 @@ import de.skyrising.litefabric.liteloader.core.LiteLoader;
 import de.skyrising.litefabric.liteloader.util.Input;
 import de.skyrising.litefabric.mixin.MinecraftClientAccessor;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.Version;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.launch.common.MappingConfiguration;
 import net.minecraft.client.MinecraftClient;
@@ -51,6 +54,7 @@ public class LiteFabric {
     private final ClientPluginChannelsImpl clientPluginChannels = new ClientPluginChannelsImpl();
     final CombinedClassLoader combinedClassLoader = new CombinedClassLoader();
     private final Map<LitemodContainer, LiteMod> modInstances = new HashMap<>();
+    public final ConfigManager configManager = new ConfigManager();
     private final InputImpl input = new InputImpl();
     private boolean frozen = false;
 
@@ -67,6 +71,10 @@ public class LiteFabric {
 
     public static LiteFabric getInstance() {
         return INSTANCE;
+    }
+
+    public static Version getMinecraftVersion() {
+        return FabricLoader.getInstance().getModContainer("minecraft").orElseThrow(IllegalStateException::new).getMetadata().getVersion();
     }
 
     public void addMod(LitemodContainer mod) {
@@ -133,6 +141,8 @@ public class LiteFabric {
 
     private void registerMod(LitemodContainer container, LiteMod mod) {
         modInstances.put(container, mod);
+        configManager.registerMod(mod);
+        configManager.initConfig(mod);
     }
 
     public void onInitCompleted(MinecraftClient client) {
@@ -146,6 +156,7 @@ public class LiteFabric {
 
     public void onTick(MinecraftClient client, boolean clock, float partialTicks) {
         input.onTick();
+        configManager.tick();
         Entity cameraEntity = client.getCameraEntity();
         boolean inGame = cameraEntity != null && cameraEntity.world != null;
         try {
@@ -254,8 +265,8 @@ public class LiteFabric {
         ListenerType<ViewportListener> viewportListeners = ListenerType.VIEWPORT;
         if (!viewportListeners.hasListeners()) return;
         Window window = new Window(client);
-        int width = client.width;
-        int height = client.height;
+        int width = client.frameBufferWidth;
+        int height = client.frameBufferHeight;
         try {
             if (fullscreenChanged) {
                 ListenerType.MH_FULLSCREEN_TOGGLED.invokeExact(fullscreen);
@@ -317,6 +328,16 @@ public class LiteFabric {
                 if (s != null) {
                     return s;
                 }
+            } catch (ReflectiveOperationException e) {
+                e.printStackTrace();
+            }
+        }
+        LiteMod mod = modInstances.get(container);
+        if (mod instanceof Configurable) {
+            try {
+                // Avoid loading the Screen class during verification
+                Constructor<ConfigPanelScreen> panelScreenConstructor = ConfigPanelScreen.class.getConstructor(Screen.class, LiteMod.class);
+                return panelScreenConstructor.newInstance(parent, mod);
             } catch (ReflectiveOperationException e) {
                 e.printStackTrace();
             }

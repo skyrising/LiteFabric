@@ -34,7 +34,7 @@ public class MinecraftClientMixin {
         LiteFabric.getInstance().onInitCompleted((MinecraftClient) (Object) this);
     }
 
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;method_30211(FJ)V", shift = At.Shift.AFTER))
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;render(FJ)V", shift = At.Shift.AFTER))
     private void litefabric$onClientTick(CallbackInfo ci) {
         profiler.push("litefabric");
         boolean clock = renderTickCounter.ticksThisFrame > 0;

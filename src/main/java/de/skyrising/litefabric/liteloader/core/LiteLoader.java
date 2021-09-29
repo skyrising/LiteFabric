@@ -1,6 +1,8 @@
 package de.skyrising.litefabric.liteloader.core;
 
 import de.skyrising.litefabric.impl.LiteFabric;
+import de.skyrising.litefabric.impl.modconfig.ConfigManager;
+import de.skyrising.litefabric.liteloader.modconfig.Exposable;
 import de.skyrising.litefabric.liteloader.util.Input;
 import net.fabricmc.loader.api.FabricLoader;
 
@@ -24,5 +26,15 @@ public final class LiteLoader {
 
     public static ClientPluginChannels getClientPluginChannels() {
         return LiteFabric.getInstance().getClientPluginChannels();
+    }
+
+    public void registerExposable(Exposable exposable, String fileName) {
+        ConfigManager configManager = LiteFabric.getInstance().configManager;
+        configManager.registerExposable(exposable, fileName, true);
+        configManager.initConfig(exposable);
+    }
+
+    public void writeConfig(Exposable exposable) {
+        LiteFabric.getInstance().configManager.invalidateConfig(exposable);
     }
 }

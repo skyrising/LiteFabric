@@ -3,12 +3,15 @@
   "package": "de.skyrising.litefabric.mixin",
   "compatibilityLevel": "JAVA_8",
   "mixins": [
+    "MinecraftServerMixin"
+  ],
+  "client": [
+    "ButtonWidgetAccessor",
     "ClientLoginNetworkHandlerMixin",
     "ClientPlayNetworkHandlerMixin",
     "GameRendererMixin",
     "KeyBindingAccessor",
     "MinecraftClientAccessor",
-    "MinecraftClientMixin",
-    "MinecraftServerMixin"
+    "MinecraftClientMixin"
   ]
 }

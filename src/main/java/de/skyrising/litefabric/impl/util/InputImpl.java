@@ -30,7 +30,7 @@ public class InputImpl extends Input {
         if (!keyBindings.contains(binding)) {
             String id = binding.getId();
             if (storedKeys.containsKey(id)) {
-                binding.method_28682(storedKeys.getInt(id));
+                binding.setKeyCode(storedKeys.getInt(id));
             }
             keyBindings.add(binding);
             this.keyBindings.add(binding);
@@ -57,7 +57,7 @@ public class InputImpl extends Input {
     public void onTick() {
         boolean changed = false;
         for (KeyBinding k : keyBindings) {
-            if (k.method_28693() != storedKeys.getInt(k.getId())) {
+            if (k.getKeyCode() != storedKeys.getInt(k.getId())) {
                 changed = true;
                 break;
             }
@@ -84,7 +84,7 @@ public class InputImpl extends Input {
         Properties props = new Properties();
         for (KeyBinding k : keyBindings) {
             String id = k.getId();
-            int key = k.method_28693();
+            int key = k.getKeyCode();
             props.setProperty(id, String.valueOf(key));
             storedKeys.put(id, key);
         }
