@@ -1,8 +1,10 @@
 package de.skyrising.litefabric.impl;
 
 import com.google.common.jimfs.Jimfs;
+import com.mojang.realmsclient.dto.RealmsServer;
 import de.skyrising.litefabric.impl.core.ClientPluginChannelsImpl;
 import de.skyrising.litefabric.impl.util.InputImpl;
+import de.skyrising.litefabric.impl.util.ListenerHandle;
 import de.skyrising.litefabric.impl.util.TargetRememberingExtension;
 import de.skyrising.litefabric.liteloader.*;
 import de.skyrising.litefabric.liteloader.core.ClientPluginChannels;
@@ -30,6 +32,8 @@ import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -41,19 +45,6 @@ public class LiteFabric {
     public static final boolean PROFILE_STARTUP = false;
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric");
     private static final LiteFabric INSTANCE = new LiteFabric();
-    private static final Map<Class<?>, ListenerType<?>> LISTENER_TYPES = new HashMap<>();
-    private static final ListenerType<HUDRenderListener> HUD_RENDER = new ListenerType<>(HUDRenderListener.class);
-    private static final ListenerType<InitCompleteListener> INIT_COMPLETE = new ListenerType<>(InitCompleteListener.class);
-    private static final ListenerType<JoinGameListener> JOIN_GAME = new ListenerType<>(JoinGameListener.class);
-    private static final ListenerType<PluginChannelListener> PLUGIN_CHANNELS = new ListenerType<>(PluginChannelListener.class);
-    private static final ListenerType<PostLoginListener> POST_LOGIN = new ListenerType<>(PostLoginListener.class);
-    private static final ListenerType<PostRenderListener> POST_RENDER = new ListenerType<>(PostRenderListener.class);
-    private static final ListenerType<PreJoinGameListener> PRE_JOIN_GAME = new ListenerType<>(PreJoinGameListener.class);
-    private static final ListenerType<PreRenderListener> PRE_RENDER = new ListenerType<>(PreRenderListener.class);
-    private static final ListenerType<ServerCommandProvider> SERVER_COMMAND_PROVIDER = new ListenerType<>(ServerCommandProvider.class);
-    private static final ListenerType<ShutdownListener> SHUTDOWN = new ListenerType<>(ShutdownListener.class);
-    private static final ListenerType<ViewportListener> VIEWPORT = new ListenerType<>(ViewportListener.class);
-    private static final ListenerType<Tickable> TICKABLE = new ListenerType<>(Tickable.class);
     static final FileSystem TMP_FILES = Jimfs.newFileSystem();
     private final LitemodRemapper remapper;
     final Map<String, LitemodContainer> mods = new LinkedHashMap<>();
@@ -128,12 +119,15 @@ public class LiteFabric {
         for (LitemodContainer mod : mods.values()) {
             LiteMod instance = mod.init(configPath);
             registerMod(mod, instance);
-            for (ListenerType<?> listenerType : LISTENER_TYPES.values()) {
+            for (ListenerType<?> listenerType : ListenerType.LISTENER_TYPES.values()) {
                 listenerType.propose(instance);
             }
         }
-        for (PluginChannelListener listener : PLUGIN_CHANNELS.getListeners()) {
+        for (PluginChannelListener listener : ListenerType.PLUGIN_CHANNELS.getListeners()) {
             clientPluginChannels.addListener(listener);
+        }
+        for (ListenerType<?> listener : ListenerType.LISTENER_TYPES.values()) {
+            listener.initHandles();
         }
     }
 
@@ -143,10 +137,10 @@ public class LiteFabric {
 
     public void onInitCompleted(MinecraftClient client) {
         LiteLoader liteLoader = LiteLoader.getInstance();
-        ListenerType<InitCompleteListener> type = INIT_COMPLETE;
-        if (!type.hasListeners()) return;
-        for (InitCompleteListener listener : type.getListeners()) {
-            listener.onInitCompleted(client, liteLoader);
+        try {
+            ListenerType.MH_INIT_COMPLETE.invokeExact(client, liteLoader);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -154,59 +148,58 @@ public class LiteFabric {
         input.onTick();
         Entity cameraEntity = client.getCameraEntity();
         boolean inGame = cameraEntity != null && cameraEntity.world != null;
-        ListenerType<Tickable> type = TICKABLE;
-        if (type.hasListeners()) {
-            for (Tickable tickable : type.getListeners()) {
-                tickable.onTick(client, partialTicks, inGame, clock);
-            }
+        try {
+            ListenerType.MH_TICK.invokeExact(client, partialTicks, inGame, clock);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
         if (!((MinecraftClientAccessor) client).isRunning()) onShutdown();
     }
 
     private void onShutdown() {
         input.save();
-        ListenerType<ShutdownListener> type = SHUTDOWN;
-        if (!type.hasListeners()) return;
-        for (ShutdownListener listener : type.getListeners()) {
-            listener.onShutDown();
+        try {
+            ListenerType.MH_SHUTDOWN.invokeExact();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void onRenderWorld(float partialTicks) {
-        ListenerType<PreRenderListener> type = PRE_RENDER;
-        if (!type.hasListeners()) return;
-        for (PreRenderListener listener : type.getListeners()) {
-            listener.onRenderWorld(partialTicks);
+        try {
+            ListenerType.MH_RENDER_WORLD.invokeExact(partialTicks);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void onPostRender(float partialTicks) {
-        ListenerType<PostRenderListener> type = POST_RENDER;
-        if (!type.hasListeners()) return;
-        for (PostRenderListener listener : type.getListeners()) {
-            listener.onPostRender(partialTicks);
+        try {
+            ListenerType.MH_POST_RENDER.invokeExact(partialTicks);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void onPostRenderEntities(float partialTicks) {
-        ListenerType<PostRenderListener> type = POST_RENDER;
-        if (!type.hasListeners()) return;
-        for (PostRenderListener listener : type.getListeners()) {
-            listener.onPostRenderEntities(partialTicks);
+        try {
+            ListenerType.MH_POST_RENDER_ENTITIES.invokeExact(partialTicks);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void onPostLogin(PacketListener packetListener, LoginSuccessS2CPacket loginPacket) {
         clientPluginChannels.onPostLogin();
-        ListenerType<PostLoginListener> type = POST_LOGIN;
-        if (!type.hasListeners()) return;
-        for (PostLoginListener listener : type.getListeners()) {
-            listener.onPostLogin(packetListener, loginPacket);
+        try {
+            ListenerType.MH_POST_LOGIN.invokeExact(packetListener, loginPacket);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void onJoinGame(PacketListener packetListener, GameJoinS2CPacket joinPacket, ServerInfo serverData) {
-        ListenerType<PreJoinGameListener> preJoinGame = PRE_JOIN_GAME;
+        ListenerType<PreJoinGameListener> preJoinGame = ListenerType.PRE_JOIN_GAME;
         if (preJoinGame.hasListeners()) {
             for (PreJoinGameListener listener : preJoinGame.getListeners()) {
                 if (!listener.onPreJoinGame(packetListener, joinPacket)) {
@@ -215,16 +208,15 @@ public class LiteFabric {
             }
         }
         clientPluginChannels.onJoinGame();
-        ListenerType<JoinGameListener> joinGame = JOIN_GAME;
-        if (joinGame.hasListeners()) {
-            for (JoinGameListener listener : joinGame.getListeners()) {
-                listener.onJoinGame(packetListener, joinPacket, serverData, null);
-            }
+        try {
+            ListenerType.MH_JOIN_GAME.invokeExact(packetListener, joinPacket, serverData, (RealmsServer) null);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void onInitServer(MinecraftServer server) {
-        ListenerType<ServerCommandProvider> serverCommandProviders = SERVER_COMMAND_PROVIDER;
+        ListenerType<ServerCommandProvider> serverCommandProviders = ListenerType.SERVER_COMMAND_PROVIDER;
         if (serverCommandProviders.hasListeners()) {
             ServerCommandManager manager = (ServerCommandManager) server.method_33193();
             for (ServerCommandProvider provider : serverCommandProviders.getListeners()) {
@@ -234,24 +226,22 @@ public class LiteFabric {
     }
 
     public void onPreRenderHUD() {
-        ListenerType<HUDRenderListener> hudRender = HUD_RENDER;
-        if (!hudRender.hasListeners()) return;
+        if (!ListenerType.HUD_RENDER.hasListeners()) return;
         Window window = new Window(MinecraftClient.getInstance());
-        int width = window.getWidth();
-        int height = window.getHeight();
-        for (HUDRenderListener listener : hudRender.getListeners()) {
-            listener.onPreRenderHUD(width, height);
+        try {
+            ListenerType.MH_HUD_RENDER_PRE.invokeExact(window.getWidth(), window.getHeight());
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
     public void onPostRenderHUD() {
-        ListenerType<HUDRenderListener> hudRender = HUD_RENDER;
-        if (!hudRender.hasListeners()) return;
+        if (!ListenerType.HUD_RENDER.hasListeners()) return;
         Window window = new Window(MinecraftClient.getInstance());
-        int width = window.getWidth();
-        int height = window.getHeight();
-        for (HUDRenderListener listener : hudRender.getListeners()) {
-            listener.onPostRenderHUD(width, height);
+        try {
+            ListenerType.MH_HUD_RENDER_POST.invokeExact(window.getWidth(), window.getHeight());
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -261,16 +251,18 @@ public class LiteFabric {
         boolean fullscreen = client.isRunning(); // incorrect yarn name
         boolean fullscreenChanged = fullscreen != wasFullscreen;
         if (fullscreenChanged) wasFullscreen = fullscreen;
-        ListenerType<ViewportListener> viewportListeners = VIEWPORT;
+        ListenerType<ViewportListener> viewportListeners = ListenerType.VIEWPORT;
         if (!viewportListeners.hasListeners()) return;
         Window window = new Window(client);
         int width = client.width;
         int height = client.height;
-        for (ViewportListener listener : viewportListeners.getListeners()) {
+        try {
             if (fullscreenChanged) {
-                listener.onFullScreenToggled(fullscreen);
+                ListenerType.MH_FULLSCREEN_TOGGLED.invokeExact(fullscreen);
             }
-            listener.onViewportResized(window, width, height);
+            ListenerType.MH_VIEWPORT_RESIZED.invokeExact(window, width, height);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
         }
     }
 
@@ -356,8 +348,38 @@ public class LiteFabric {
     }
 
     static class ListenerType<T> {
+        static final Map<Class<?>, ListenerType<?>> LISTENER_TYPES = new HashMap<>();
+        static final ListenerType<HUDRenderListener> HUD_RENDER = new ListenerType<>(HUDRenderListener.class);
+        static final MethodHandle MH_HUD_RENDER_PRE = HUD_RENDER.createHandle("onPreRenderHUD");
+        static final MethodHandle MH_HUD_RENDER_POST = HUD_RENDER.createHandle("onPostRenderHUD");
+        static final ListenerType<InitCompleteListener> INIT_COMPLETE = new ListenerType<>(InitCompleteListener.class);
+        static final MethodHandle MH_INIT_COMPLETE = INIT_COMPLETE.createHandle("onInitCompleted");
+        static final ListenerType<JoinGameListener> JOIN_GAME = new ListenerType<>(JoinGameListener.class);
+        static final MethodHandle MH_JOIN_GAME = JOIN_GAME.createHandle("onJoinGame");
+        static final ListenerType<PluginChannelListener> PLUGIN_CHANNELS = new ListenerType<>(PluginChannelListener.class);
+        static final ListenerType<PostLoginListener> POST_LOGIN = new ListenerType<>(PostLoginListener.class);
+        static final MethodHandle MH_POST_LOGIN = POST_LOGIN.createHandle("onPostLogin");
+        static final ListenerType<PostRenderListener> POST_RENDER = new ListenerType<>(PostRenderListener.class);
+        static final MethodHandle MH_POST_RENDER = POST_RENDER.createHandle("onPostRender");
+        static final MethodHandle MH_POST_RENDER_ENTITIES = POST_RENDER.createHandle("onPostRenderEntities");
+        static final ListenerType<PreJoinGameListener> PRE_JOIN_GAME = new ListenerType<>(PreJoinGameListener.class);
+        static final ListenerType<PreRenderListener> PRE_RENDER = new ListenerType<>(PreRenderListener.class);
+        static final MethodHandle MH_RENDER_WORLD = PRE_RENDER.createHandle("onRenderWorld");
+        static final MethodHandle MH_SETUP_CAMERA_TRANSFORM = PRE_RENDER.createHandle("onSetupCameraTransform");
+        static final MethodHandle MH_RENDER_SKY = PRE_RENDER.createHandle("onRenderSky");
+        static final MethodHandle MH_RENDER_CLOUDS = PRE_RENDER.createHandle("onRenderClouds");
+        static final MethodHandle MH_RENDER_TERRAIN = PRE_RENDER.createHandle("onRenderTerrain");
+        static final ListenerType<ServerCommandProvider> SERVER_COMMAND_PROVIDER = new ListenerType<>(ServerCommandProvider.class);
+        static final ListenerType<ShutdownListener> SHUTDOWN = new ListenerType<>(ShutdownListener.class);
+        static final MethodHandle MH_SHUTDOWN = SHUTDOWN.createHandle("onShutDown");
+        static final ListenerType<ViewportListener> VIEWPORT = new ListenerType<>(ViewportListener.class);
+        static final MethodHandle MH_VIEWPORT_RESIZED = VIEWPORT.createHandle("onViewportResized");
+        static final MethodHandle MH_FULLSCREEN_TOGGLED = VIEWPORT.createHandle("onFullScreenToggled");
+        static final ListenerType<Tickable> TICKABLE = new ListenerType<>(Tickable.class);
+        static final MethodHandle MH_TICK = TICKABLE.createHandle("onTick");
         final Class<T> cls;
         private final List<T> listeners = new ArrayList<>();
+        private final List<ListenerHandle<T>> handles = new ArrayList<>();
         private boolean hasListeners = false;
 
         ListenerType(Class<T> cls) {
@@ -372,6 +394,7 @@ public class LiteFabric {
 
         void addListener(T listener) {
             listeners.add(listener);
+            for (ListenerHandle<T> handle : handles) handle.addListener(listener);
             hasListeners = true;
         }
 
@@ -382,5 +405,30 @@ public class LiteFabric {
         List<T> getListeners() {
             return listeners;
         }
+
+        MethodHandle createHandle(String name) {
+            for (Method m : cls.getDeclaredMethods()) {
+                if (name.equals(m.getName())) {
+                    return createHandle(name, m.getReturnType(), m.getParameterTypes());
+                }
+            }
+            throw new IllegalStateException("Method '" + name + "' not found in " + cls);
+        }
+
+        MethodHandle createHandle(String name, Class<?> retType, Class<?> ...argTypes) {
+            try {
+                ListenerHandle<T> handle = new ListenerHandle<>(cls, name, MethodType.methodType(retType, argTypes));
+                for (T listener : listeners) handle.addListener(listener);
+                handles.add(handle);
+                return handle.callSite.dynamicInvoker();
+            } catch (ReflectiveOperationException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        void initHandles() {
+            for (ListenerHandle<T> handle : handles) handle.init();
+        }
     }
+
 }

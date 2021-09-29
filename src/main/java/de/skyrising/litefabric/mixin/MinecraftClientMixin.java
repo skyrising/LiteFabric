@@ -4,6 +4,7 @@ import de.skyrising.litefabric.impl.LiteFabric;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.resource.ResourcePack;
+import net.minecraft.util.profiler.Profiler;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -21,6 +22,8 @@ public class MinecraftClientMixin {
 
     @Shadow @Final private List<ResourcePack> resourcePacks;
 
+    @Shadow @Final public Profiler profiler;
+
     @Inject(method = "initializeGame", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;options:Lnet/minecraft/client/options/GameOptions;", ordinal = 0, shift = At.Shift.AFTER))
     private void litefabric$onGameInitStart(CallbackInfo ci) {
         LiteFabric.getInstance().onClientInit();
@@ -33,9 +36,11 @@ public class MinecraftClientMixin {
 
     @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;method_30211(FJ)V", shift = At.Shift.AFTER))
     private void litefabric$onClientTick(CallbackInfo ci) {
+        profiler.push("litefabric");
         boolean clock = renderTickCounter.ticksThisFrame > 0;
         float partialTicks = paused ? pausedTickDelta : renderTickCounter.tickDelta;
         LiteFabric.getInstance().onTick((MinecraftClient) (Object) this, clock, partialTicks);
+        profiler.pop();
     }
 
     @Inject(method = "initializeGame", at = @At(value = "INVOKE", target = "Ljava/util/List;add(Ljava/lang/Object;)Z", shift = At.Shift.AFTER, remap = false))
@@ -45,6 +50,8 @@ public class MinecraftClientMixin {
 
     @Inject(method = "method_28810", at = @At("HEAD"))
     private void litefabric$onResize(CallbackInfo ci) {
+        profiler.push("litefabric");
         LiteFabric.getInstance().onResize();
+        profiler.pop();
     }
 }
