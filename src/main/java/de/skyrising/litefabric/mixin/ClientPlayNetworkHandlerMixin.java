@@ -4,8 +4,10 @@ import de.skyrising.litefabric.impl.LiteFabric;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.ClientPlayNetworkHandler;
 import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.s2c.play.ChatMessageS2CPacket;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
+import net.minecraft.text.Text;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -28,6 +30,20 @@ public abstract class ClientPlayNetworkHandlerMixin implements ClientPlayPacketL
             LiteFabric.getInstance().getClientPluginChannels().onPluginChannelMessage(packet);
         } catch (Throwable e) {
             e.printStackTrace();
+        }
+    }
+
+    @Inject(method = "onChatMessage", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;addChatMessage(Lnet/minecraft/network/MessageType;Lnet/minecraft/text/Text;)V"), cancellable = true)
+    private void litefabric$onChat(ChatMessageS2CPacket packet, CallbackInfo ci) {
+        Text original = packet.getMessage();
+        if (original == null) return;
+        Text filtered = LiteFabric.getInstance().filterChat(original);
+        if (filtered != original) {
+            if (filtered == null) {
+                ci.cancel();
+                return;
+            }
+            ((ChatMessageS2CPacketAccessor) packet).setMessage(filtered);
         }
     }
 }

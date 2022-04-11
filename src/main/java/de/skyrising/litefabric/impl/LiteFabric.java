@@ -11,6 +11,7 @@ import de.skyrising.litefabric.impl.util.TargetRememberingExtension;
 import de.skyrising.litefabric.liteloader.*;
 import de.skyrising.litefabric.liteloader.core.ClientPluginChannels;
 import de.skyrising.litefabric.liteloader.core.LiteLoader;
+import de.skyrising.litefabric.liteloader.core.LiteLoaderEventBroker.ReturnValue;
 import de.skyrising.litefabric.liteloader.util.Input;
 import de.skyrising.litefabric.mixin.MinecraftClientAccessor;
 import net.fabricmc.loader.api.FabricLoader;
@@ -288,6 +289,33 @@ public class LiteFabric {
         }
     }
 
+    public Text filterChat(Text original) {
+        ListenerType<ChatFilter> chatFilters = ListenerType.CHAT_FILTER;
+        if (!chatFilters.hasListeners()) return original;
+        Text result = original;
+        String message = original.toFormattedString();
+        for (ChatFilter filter : chatFilters.getListeners()) {
+            ReturnValue<Text> retVal = new ReturnValue<>();
+            if (filter.onChat(result, message, retVal)) {
+                result = retVal.get();
+                if (result == null) result = new LiteralText("");
+                message = result.toFormattedString();
+            } else {
+                return null;
+            }
+        }
+        return result;
+    }
+
+    public boolean filterOutboundChat(String message) {
+        for (OutboundChatFilter filter : ListenerType.OUTBOUND_CHAT_FILTER.getListeners()) {
+            if (!filter.onSendChatMessage(message)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public ClientPluginChannels getClientPluginChannels() {
         return clientPluginChannels;
     }
@@ -409,6 +437,8 @@ public class LiteFabric {
         static final MethodHandle MH_FULLSCREEN_TOGGLED = VIEWPORT.createHandle("onFullScreenToggled");
         static final ListenerType<Tickable> TICKABLE = new ListenerType<>(Tickable.class);
         static final MethodHandle MH_TICK = TICKABLE.createHandle("onTick");
+        static final ListenerType<ChatFilter> CHAT_FILTER = new ListenerType<>(ChatFilter.class);
+        static final ListenerType<OutboundChatFilter> OUTBOUND_CHAT_FILTER = new ListenerType<>(OutboundChatFilter.class);
         final Class<T> cls;
         private final List<T> listeners = new ArrayList<>();
         private final List<ListenerHandle<T>> handles = new ArrayList<>();
