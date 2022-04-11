@@ -12,6 +12,7 @@ import net.minecraft.client.resource.metadata.ResourceMetadata;
 import net.minecraft.client.resource.metadata.ResourceMetadataRegistry;
 import net.minecraft.client.texture.TextureUtil;
 import net.minecraft.resource.ResourcePack;
+import net.minecraft.resource.ZipResourcePack;
 import net.minecraft.util.Identifier;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.Nullable;
@@ -19,14 +20,13 @@ import org.jetbrains.annotations.Nullable;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.NoSuchFileException;
-import java.nio.file.Path;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipError;
 
-public class LitemodContainer implements ResourcePack {
+public class LitemodContainer extends ZipResourcePack implements ResourcePack {
     public final ModMetadata meta;
     public final List<String> entryPoints;
     public final Set<String> configGuiCandidates = new TreeSet<>((a, b) -> {
@@ -37,7 +37,8 @@ public class LitemodContainer implements ResourcePack {
     private final FileSystemUtil.FileSystemDelegate fileSystem;
     final LitemodClassProvider classProvider;
 
-    public LitemodContainer(ModMetadata meta, List<String> entryPoints, FileSystemUtil.FileSystemDelegate fileSystem, LitemodRemapper remapper) {
+    public LitemodContainer(Path path, ModMetadata meta, List<String> entryPoints, FileSystemUtil.FileSystemDelegate fileSystem, LitemodRemapper remapper) {
+        super(path.toFile());
         this.meta = meta;
         this.entryPoints = Collections.unmodifiableList(entryPoints);
         this.fileSystem = fileSystem;
@@ -55,6 +56,8 @@ public class LitemodContainer implements ResourcePack {
                 Class<? extends LiteMod> modClass = (Class<? extends LiteMod>) FabricLauncherBase.getClass(className);
                 LiteMod mod = modClass.newInstance();
                 mod.init(configPath);
+                // VoxelMap depends on itself being a ZipResourcePack with a non-null zipFile
+                if ("voxelmap".equalsIgnoreCase(meta.name)) super.containsFile("");
                 return mod;
             } catch (Throwable t) {
                 throw new RuntimeException("Failed to initialize LiteMod " + meta.name, t);
@@ -109,7 +112,7 @@ public class LitemodContainer implements ResourcePack {
         } catch (IOException e) {
             throw new RuntimeException("Could not search for LiteMod entry point", e);
         }
-        return Optional.of(new LitemodContainer(meta, entryPoints, jarFs, remapper));
+        return Optional.of(new LitemodContainer(path, meta, entryPoints, jarFs, remapper));
     }
 
     private Path getPath(Identifier id) {
@@ -125,7 +128,7 @@ public class LitemodContainer implements ResourcePack {
         return Files.newInputStream(getPath(id));
     }
 
-    private InputStream openFile(String file) throws IOException {
+    protected InputStream openFile(String file) throws IOException {
         return Files.newInputStream(getPath(file));
     }
 
