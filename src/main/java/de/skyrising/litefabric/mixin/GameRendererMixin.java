@@ -38,14 +38,14 @@ public abstract class GameRendererMixin {
         client.profiler.pop();
     }
 
-    @Inject(method = "method_30211", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(F)V"))
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(F)V"))
     private void litefabric$onPreRenderHud(float partialTicks, long timeSlice, CallbackInfo ci) {
         client.profiler.push("litefabric");
         LiteFabric.getInstance().onPreRenderHUD();
         client.profiler.pop();
     }
 
-    @Inject(method = "method_30211", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(F)V", shift = At.Shift.AFTER))
+    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(F)V", shift = At.Shift.AFTER))
     private void litefabric$onPostRenderHud(float partialTicks, long timeSlice, CallbackInfo ci) {
         client.profiler.push("litefabric");
         LiteFabric.getInstance().onPostRenderHUD();
