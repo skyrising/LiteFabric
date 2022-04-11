@@ -179,4 +179,21 @@ public class LitemodContainer implements ResourcePack {
     public String getName() {
         return "Litemod(" + meta.name + ")";
     }
+
+    public void dumpResources() throws IOException {
+        for (Path baseSrc : fileSystem.get().getRootDirectories()) {
+            Path baseDest = Paths.get(".litefabric.out/resource", meta.name);
+            Files.walkFileTree(baseSrc, new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (file.getNameCount() == 0 || file.toString().endsWith(".class")) return FileVisitResult.CONTINUE;
+                    System.out.println(baseSrc.relativize(file));
+                    Path dest = baseDest.resolve(baseSrc.relativize(file).toString());
+                    Files.createDirectories(dest.getParent());
+                    Files.copy(file, dest, StandardCopyOption.REPLACE_EXISTING);
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        }
+    }
 }

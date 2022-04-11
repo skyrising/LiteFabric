@@ -35,7 +35,6 @@ class LitemodClassProvider {
         "fi/dy/masa/malilib/gui/GuiConfigsBase",
         SCREEN_CLASS
     ));
-    private static final boolean DUMP = true;
     private static final byte[] NOT_PRESENT_BYTES = new byte[0];
     private static final ClassNode NOT_PRESENT_NODE = new ClassNode();
     private static final Object2LongMap<String> TRANSFORM_TIME = new Object2LongOpenHashMap<>();
@@ -119,7 +118,7 @@ class LitemodClassProvider {
         remapped.accept(writer);
         byte[] bytes = writer.toByteArray();
         time = countSubTask(name, "toBytes", time);
-        if (DUMP) dump(classFileName, bytes);
+        if (LiteFabric.DUMP_CLASSES) dump(classFileName, bytes);
         countSubTask(name, "dump", time);
         return bytes;
     }
@@ -233,8 +232,8 @@ class LitemodClassProvider {
             }
             Path path = fileSystem.getPath(name);
             if (Files.exists(path)) {
-                if (DUMP) {
-                    Path out = Paths.get(".litefabric.out/resource/" + name);
+                if (LiteFabric.DUMP_RESOURCES) {
+                    Path out = Paths.get(".litefabric.out/resource/", mod.meta.name, name);
                     Files.createDirectories(out.getParent());
                     Files.copy(path, out, StandardCopyOption.REPLACE_EXISTING);
                 }

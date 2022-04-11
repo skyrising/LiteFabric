@@ -27,6 +27,8 @@ import net.minecraft.network.packet.s2c.login.LoginSuccessS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.command.ServerCommandManager;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.mixin.MixinEnvironment;
@@ -46,6 +48,8 @@ import java.util.*;
 
 public class LiteFabric {
     public static final boolean PROFILE_STARTUP = false;
+    public static final boolean DUMP_CLASSES = true;
+    public static final boolean DUMP_RESOURCES = true;
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric");
     private static final LiteFabric INSTANCE = new LiteFabric();
     static final FileSystem TMP_FILES = Jimfs.newFileSystem();
@@ -121,6 +125,13 @@ public class LiteFabric {
 
     public void onClientInit() {
         LOGGER.info("Initializing litemods");
+        if (DUMP_RESOURCES) {
+            try {
+                for (LitemodContainer mod : mods.values()) mod.dumpResources();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
         onResize();
         input.load();
         File configPath = FabricLoader.getInstance().getConfigDirectory();
