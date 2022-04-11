@@ -1,7 +1,5 @@
 package de.skyrising.litefabric.impl.util;
 
-import sun.invoke.util.Wrapper;
-
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.util.List;
@@ -15,7 +13,7 @@ public final class MoreMethodHandles {
     public static MethodHandle zero(Class<?> type) {
         return (type == void.class
             ? zero(int.class)
-            : constant(type, Wrapper.forPrimitiveType(type).zero())
+            : constant(type, 0)
         ).asType(methodType(type));
     }
 
