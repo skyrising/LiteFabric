@@ -81,7 +81,7 @@ public final class RemappingReferenceMapper implements IClassReferenceMapper, IR
 
             // To handle propagation, find super/itf-class (for IRemapper)
             // but pass the requested class in the MemberInfo
-            MemberInfo info = MemberInfo.parse(remapped, null, null);
+            MemberInfo info = MemberInfo.parse(remapped, null);
             if (info.getOwner() == null) {
                 String target = targetClass.get();
                 LOGGER.debug("No owner: {}, guessing {}", info, target);
@@ -91,7 +91,7 @@ public final class RemappingReferenceMapper implements IClassReferenceMapper, IR
                 }
             }
             if (info.getName() == null && info.getDesc() == null) {
-                return info.getOwner() != null ? new MemberInfo(remapper.map(info.getOwner()), null, null).toString() : info.toString();
+                return info.getOwner() != null ? new MemberInfo(remapper.map(info.getOwner()), null).toString() : info.toString();
             } else if (info.isField()) {
                 remapped = new MemberInfo(
                         remapper.mapFieldName(info.getOwner(), info.getName(), info.getDesc()),

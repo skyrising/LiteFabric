@@ -66,7 +66,7 @@ public class LiteFabric {
     private LiteFabric() {
         deleteDebugOut();
         MappingConfiguration mappings = FabricLauncherBase.getLauncher().getMappingConfiguration();
-        remapper = new LitemodRemapper(mappings.getMappings(), mappings.getTargetNamespace());
+        remapper = new LitemodRemapper(mappings.getMappings(), FabricLoader.getInstance().isDevelopmentEnvironment() ? "named" : "intermediary");
         LitemodMixinService.addRemapper(remapper);
         ClassInfoHax.apply();
         MixinEnvironment env = MixinEnvironment.getDefaultEnvironment();

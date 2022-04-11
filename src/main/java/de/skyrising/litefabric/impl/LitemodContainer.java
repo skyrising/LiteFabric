@@ -6,8 +6,9 @@ import com.google.gson.JsonParseException;
 import com.google.gson.JsonParser;
 import de.skyrising.litefabric.liteloader.LiteMod;
 import net.fabricmc.loader.FabricLoader;
+import net.fabricmc.loader.impl.util.FileSystemUtil;
+import net.fabricmc.loader.impl.util.log.Log;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
-import net.fabricmc.loader.util.FileSystemUtil;
 import net.minecraft.client.resource.ResourceMetadataProvider;
 import net.minecraft.client.texture.TextureUtil;
 import net.minecraft.resource.ResourcePack;
@@ -25,6 +26,8 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.ZipError;
+
+import static net.fabricmc.loader.impl.util.log.LogCategory.DISCOVERY;
 
 public class LitemodContainer extends ZipResourcePack implements ResourcePack {
     public final ModMetadata meta;
@@ -85,7 +88,7 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
             throw new RuntimeException("Jar at " + path + " is corrupted, please redownload it!");
         }
         if (!Files.exists(modJson)) {
-            loader.getLogger().warn("No litemod.json found in " + path + ", skipping");
+            Log.warn(DISCOVERY, "No litemod.json found in " + path + ", skipping");
             return Optional.empty();
         }
         ModMetadata meta;
@@ -94,7 +97,7 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
         } catch (IOException e) {
             throw new RuntimeException("Failed to read litemod.json in " + path + "!");
         } catch (JsonParseException e) {
-            loader.getLogger().warn("Could not load litemod.json in " + path + ": " + e.getMessage());
+            Log.warn(DISCOVERY, "Could not load litemod.json in " + path + ": " + e.getMessage());
             return Optional.empty();
         }
         List<String> entryPoints = new ArrayList<>();
@@ -190,7 +193,6 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     if (file.getNameCount() == 0 || file.toString().endsWith(".class")) return FileVisitResult.CONTINUE;
-                    System.out.println(baseSrc.relativize(file));
                     Path dest = baseDest.resolve(baseSrc.relativize(file).toString());
                     Files.createDirectories(dest.getParent());
                     Files.copy(file, dest, StandardCopyOption.REPLACE_EXISTING);

@@ -1,8 +1,8 @@
 package de.skyrising.litefabric.impl;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import de.skyrising.litefabric.impl.util.RemappingReferenceMapper;
+import de.skyrising.litefabric.impl.util.ShadedGsonHelper;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
@@ -158,14 +158,9 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
             if (resource == null) {
                 throw new IllegalArgumentException(String.format("The specified resource '%s' was invalid or could not be read", configFile));
             }
-            Gson gson = new Gson();
-            JsonObject obj = gson.fromJson(new InputStreamReader(resource), JsonObject.class);
-            String refMap = null;
-            if (obj.has("refmap")) {
-                refMap = obj.getAsJsonPrimitive("refmap").getAsString();
-                obj.remove("refmap");
-            }
-            Object config = gson.fromJson(obj, MixinConfig_class);
+            Pair<String, Object> parsedConfig = ShadedGsonHelper.parseMixinConfig(resource, MixinConfig_class);
+            String refMap = parsedConfig.getLeft();
+            Object config = parsedConfig.getRight();
             if ((boolean) MixinConfig_onLoad.invoke(config, service, configFile, MixinEnvironment.getDefaultEnvironment())) {
                 Config cfg = (Config) MixinConfig_getHandle.invoke(config);
                 if (refMap != null) refMaps.put(cfg, refMap);
