@@ -41,7 +41,7 @@ public class ClientPluginChannelsImpl extends ClientPluginChannels {
         if (customPayload == null) return;
         String channel = customPayload.getChannel();
         if (channel == null) return;
-        PacketByteBuf data = customPayload.getData();
+        PacketByteBuf data = customPayload.getPayload();
         if (channel.equals("REGISTER")) {
             onRegisterPacketReceived(data);
         } else if (pluginChannels.containsKey(channel)) {

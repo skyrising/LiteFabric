@@ -27,7 +27,7 @@ import net.minecraft.network.listener.PacketListener;
 import net.minecraft.network.packet.s2c.login.LoginSuccessS2CPacket;
 import net.minecraft.network.packet.s2c.play.GameJoinS2CPacket;
 import net.minecraft.server.MinecraftServer;
-import net.minecraft.server.command.ServerCommandManager;
+import net.minecraft.server.command.CommandManager;
 import net.minecraft.text.LiteralText;
 import net.minecraft.text.Text;
 import org.apache.logging.log4j.LogManager;
@@ -241,7 +241,7 @@ public class LiteFabric {
     public void onInitServer(MinecraftServer server) {
         ListenerType<ServerCommandProvider> serverCommandProviders = ListenerType.SERVER_COMMAND_PROVIDER;
         if (serverCommandProviders.hasListeners()) {
-            ServerCommandManager manager = (ServerCommandManager) server.method_33193();
+            CommandManager manager = (CommandManager) server.getCommandManager();
             for (ServerCommandProvider provider : serverCommandProviders.getListeners()) {
                 provider.provideCommands(manager);
             }
@@ -271,14 +271,14 @@ public class LiteFabric {
     private boolean wasFullscreen;
     public void onResize() {
         MinecraftClient client = MinecraftClient.getInstance();
-        boolean fullscreen = client.isRunning(); // incorrect yarn name
+        boolean fullscreen = client.isWindowFocused(); // incorrect yarn name
         boolean fullscreenChanged = fullscreen != wasFullscreen;
         if (fullscreenChanged) wasFullscreen = fullscreen;
         ListenerType<ViewportListener> viewportListeners = ListenerType.VIEWPORT;
         if (!viewportListeners.hasListeners()) return;
         Window window = new Window(client);
-        int width = client.frameBufferWidth;
-        int height = client.frameBufferHeight;
+        int width = client.width;
+        int height = client.height;
         try {
             if (fullscreenChanged) {
                 ListenerType.MH_FULLSCREEN_TOGGLED.invokeExact(fullscreen);
@@ -293,13 +293,13 @@ public class LiteFabric {
         ListenerType<ChatFilter> chatFilters = ListenerType.CHAT_FILTER;
         if (!chatFilters.hasListeners()) return original;
         Text result = original;
-        String message = original.toFormattedString();
+        String message = original.asFormattedString();
         for (ChatFilter filter : chatFilters.getListeners()) {
             ReturnValue<Text> retVal = new ReturnValue<>();
             if (filter.onChat(result, message, retVal)) {
                 result = retVal.get();
                 if (result == null) result = new LiteralText("");
-                message = result.toFormattedString();
+                message = result.asFormattedString();
             } else {
                 return null;
             }

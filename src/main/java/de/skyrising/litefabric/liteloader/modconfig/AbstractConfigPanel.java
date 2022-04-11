@@ -2,8 +2,8 @@ package de.skyrising.litefabric.liteloader.modconfig;
 
 import de.skyrising.litefabric.mixin.ButtonWidgetAccessor;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gui.Element;
 import net.minecraft.client.gui.widget.ButtonWidget;
+import net.minecraft.client.gui.widget.LabelWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import org.lwjgl.input.Keyboard;
 
@@ -113,9 +113,9 @@ public abstract class AbstractConfigPanel implements ConfigPanel {
     }
 
     static class ConfigOptionLabel extends ConfigOption {
-        private final Element label;
+        private final LabelWidget label;
 
-        ConfigOptionLabel(Element label) {
+        ConfigOptionLabel(LabelWidget label) {
             this.label = label;
         }
 
@@ -136,12 +136,12 @@ public abstract class AbstractConfigPanel implements ConfigPanel {
 
         @Override
         void draw(MinecraftClient client, int mouseX, int mouseY, float partialTicks) {
-            button.render(client, mouseX, mouseY, partialTicks);
+            button.method_891(client, mouseX, mouseY, partialTicks);
         }
 
         @Override
         boolean mousePressed(MinecraftClient client, int mouseX, int mouseY) {
-            if (button.onClick(client, mouseX, mouseY)) {
+            if (button.isMouseOver(client, mouseX, mouseY)) {
                 button.playDownSound(client.getSoundManager());
                 if (listener != null) {
                     listener.actionPerformed(button);

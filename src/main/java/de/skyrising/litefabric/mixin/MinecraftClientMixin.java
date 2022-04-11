@@ -2,7 +2,7 @@ package de.skyrising.litefabric.mixin;
 
 import de.skyrising.litefabric.impl.LiteFabric;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.RenderTickCounter;
+import net.minecraft.client.render.ClientTickTracker;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.util.profiler.Profiler;
 import org.spongepowered.asm.mixin.Final;
@@ -16,9 +16,9 @@ import java.util.List;
 
 @Mixin(MinecraftClient.class)
 public class MinecraftClientMixin {
-    @Shadow @Final private RenderTickCounter renderTickCounter;
+    @Shadow @Final private ClientTickTracker tricker;
     @Shadow private boolean paused;
-    @Shadow private float pausedTickDelta;
+    @Shadow private float field_15871;
 
     @Shadow @Final private List<ResourcePack> resourcePacks;
 
@@ -34,11 +34,11 @@ public class MinecraftClientMixin {
         LiteFabric.getInstance().onInitCompleted((MinecraftClient) (Object) this);
     }
 
-    @Inject(method = "render", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;render(FJ)V", shift = At.Shift.AFTER))
+    @Inject(method = "runGameLoop", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/GameRenderer;render(FJ)V", shift = At.Shift.AFTER))
     private void litefabric$onClientTick(CallbackInfo ci) {
         profiler.push("litefabric");
-        boolean clock = renderTickCounter.ticksThisFrame > 0;
-        float partialTicks = paused ? pausedTickDelta : renderTickCounter.tickDelta;
+        boolean clock = tricker.ticksThisFrame > 0;
+        float partialTicks = paused ? field_15871 : tricker.tickDelta;
         LiteFabric.getInstance().onTick((MinecraftClient) (Object) this, clock, partialTicks);
         profiler.pop();
     }
@@ -48,7 +48,7 @@ public class MinecraftClientMixin {
         resourcePacks.addAll(LiteFabric.getInstance().getMods());
     }
 
-    @Inject(method = "method_28810", at = @At("HEAD"))
+    @Inject(method = "method_2923", at = @At("HEAD"))
     private void litefabric$onResize(CallbackInfo ci) {
         profiler.push("litefabric");
         LiteFabric.getInstance().onResize();

@@ -1,22 +1,18 @@
 pluginManagement {
     repositories {
-        jcenter()
+        maven {
+            name = 'QuiltMC'
+            url = 'https://maven.quiltmc.org/repository/release/'
+        }
+        maven {
+            name = 'Cotton'
+            url = 'https://server.bbkr.space/artifactory/libs-release/'
+        }
         maven {
             name = 'Fabric'
             url = 'https://maven.fabricmc.net/'
         }
         gradlePluginPortal()
-        maven {
-            name = 'Jitpack'
-            url = 'https://jitpack.io'
-        }
-    }
-    resolutionStrategy {
-        eachPlugin {
-            if (requested.id.id == "fabric-loom" && requested.version?.endsWith("-SNAPSHOT") != true) {
-                useModule("com.github.Chocohead.Fabric-Loom:fabric-loom:${requested.version}")
-            }
-        }
     }
 }
 

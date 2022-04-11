@@ -28,9 +28,9 @@ public class InputImpl extends Input {
         GameOptions options = MinecraftClient.getInstance().options;
         List<KeyBinding> keyBindings = new ArrayList<>(Arrays.asList(options.keysAll));
         if (!keyBindings.contains(binding)) {
-            String id = binding.getId();
+            String id = binding.getTranslationKey();
             if (storedKeys.containsKey(id)) {
-                binding.setKeyCode(storedKeys.getInt(id));
+                binding.setCode(storedKeys.getInt(id));
             }
             keyBindings.add(binding);
             this.keyBindings.add(binding);
@@ -57,7 +57,7 @@ public class InputImpl extends Input {
     public void onTick() {
         boolean changed = false;
         for (KeyBinding k : keyBindings) {
-            if (k.getKeyCode() != storedKeys.getInt(k.getId())) {
+            if (k.getCode() != storedKeys.getInt(k.getTranslationKey())) {
                 changed = true;
                 break;
             }
@@ -83,8 +83,8 @@ public class InputImpl extends Input {
         if (!loaded) return;
         Properties props = new Properties();
         for (KeyBinding k : keyBindings) {
-            String id = k.getId();
-            int key = k.getKeyCode();
+            String id = k.getTranslationKey();
+            int key = k.getCode();
             props.setProperty(id, String.valueOf(key));
             storedKeys.put(id, key);
         }

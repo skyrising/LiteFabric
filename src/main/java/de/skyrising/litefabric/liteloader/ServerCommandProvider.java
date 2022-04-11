@@ -1,7 +1,7 @@
 package de.skyrising.litefabric.liteloader;
 
-import net.minecraft.server.command.ServerCommandManager;
+import net.minecraft.server.command.CommandManager;
 
 public interface ServerCommandProvider extends LiteMod {
-    void provideCommands(ServerCommandManager manager);
+    void provideCommands(CommandManager manager);
 }

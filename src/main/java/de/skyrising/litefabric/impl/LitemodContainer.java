@@ -8,12 +8,12 @@ import de.skyrising.litefabric.liteloader.LiteMod;
 import net.fabricmc.loader.FabricLoader;
 import net.fabricmc.loader.launch.common.FabricLauncherBase;
 import net.fabricmc.loader.util.FileSystemUtil;
-import net.minecraft.client.resource.metadata.ResourceMetadata;
-import net.minecraft.client.resource.metadata.ResourceMetadataRegistry;
+import net.minecraft.client.resource.ResourceMetadataProvider;
 import net.minecraft.client.texture.TextureUtil;
 import net.minecraft.resource.ResourcePack;
 import net.minecraft.resource.ZipResourcePack;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.MetadataSerializer;
 import org.apache.commons.io.IOUtils;
 import org.jetbrains.annotations.Nullable;
 
@@ -152,7 +152,7 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
 
     @Nullable
     @Override
-    public <T extends ResourceMetadata> T parseMetadata(ResourceMetadataRegistry parser, String section) throws IOException {
+    public <T extends ResourceMetadataProvider> T parseMetadata(MetadataSerializer parser, String section) throws IOException {
         try {
             return parseJson(parser, this.openFile("pack.mcmeta"), section);
         } catch (NoSuchFileException e) {
@@ -160,12 +160,12 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
         }
     }
 
-    static <T extends ResourceMetadata> T parseJson(ResourceMetadataRegistry parser, InputStream inputStream, String section) {
+    static <T extends ResourceMetadataProvider> T parseJson(MetadataSerializer parser, InputStream inputStream, String section) {
         BufferedReader bufferedReader = null;
         try {
             bufferedReader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
             JsonObject jsonObject = (new JsonParser()).parse(bufferedReader).getAsJsonObject();
-            return parser.loadJson(section, jsonObject);
+            return parser.fromJson(section, jsonObject);
         } catch (RuntimeException var9) {
             throw new JsonParseException(var9);
         } finally {
@@ -175,7 +175,7 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
 
     @Override
     public BufferedImage getIcon() throws IOException {
-        return TextureUtil.readImage(this.openFile("pack.png"));
+        return TextureUtil.create(this.openFile("pack.png"));
     }
 
     @Override

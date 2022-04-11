@@ -43,7 +43,7 @@ public abstract class ClientPlayNetworkHandlerMixin implements ClientPlayPacketL
                 ci.cancel();
                 return;
             }
-            ((ChatMessageS2CPacketAccessor) packet).setMessage(filtered);
+            ((ChatMessageS2CPacketAccessor) packet).setText(filtered);
         }
     }
 }

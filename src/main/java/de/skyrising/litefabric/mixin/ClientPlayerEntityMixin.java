@@ -1,7 +1,7 @@
 package de.skyrising.litefabric.mixin;
 
 import de.skyrising.litefabric.impl.LiteFabric;
-import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.entity.player.ClientPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;

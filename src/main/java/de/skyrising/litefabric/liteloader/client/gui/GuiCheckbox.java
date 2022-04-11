@@ -14,11 +14,11 @@ public class GuiCheckbox extends ButtonWidget {
     public boolean checked;
 
     public GuiCheckbox(int id, int x, int y, String label) {
-        super(id, x, y, MinecraftClient.getInstance().textRenderer.getWidth(label) + CHECK_BOX_SIZE_TOTAL, SIZE, label);
+        super(id, x, y, MinecraftClient.getInstance().textRenderer.getStringWidth(label) + CHECK_BOX_SIZE_TOTAL, SIZE, label);
     }
 
     @Override
-    public void render(MinecraftClient client, int mouseX, int mouseY, float delta) {
+    public void method_891(MinecraftClient client, int mouseX, int mouseY, float delta) {
         if (!visible) return;
         fill(x + CHECK_BOX_MARGIN, y, x + width, y + height - EXTRA_MARGIN, 0x33ffffff);
         hovered = mouseX >= x + CHECK_BOX_MARGIN && mouseY >= y && mouseX < x + width && mouseY < y + height - EXTRA_MARGIN;
@@ -31,13 +31,13 @@ public class GuiCheckbox extends ButtonWidget {
         if (checked) {
             fill(x1 + 2, y1 + 2, x2 - 2, y2 - 2, 0xff00e000);
         }
-        render(client, mouseX, mouseY);
+        renderBg(client, mouseX, mouseY);
         int textColor = 0xe0e0e0;
         if (!active) {
             textColor = 0xa0a0a0;
         } else if (hovered) {
             textColor = 0xffffa0;
         }
-        drawStringWithShadow(client.textRenderer, message, x + TEXT_OFFSET_X, y + TEXT_OFFSET_Y, textColor);
+        drawWithShadow(client.textRenderer, message, x + TEXT_OFFSET_X, y + TEXT_OFFSET_Y, textColor);
     }
 }

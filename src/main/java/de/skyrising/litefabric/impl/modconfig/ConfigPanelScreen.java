@@ -66,7 +66,7 @@ public class ConfigPanelScreen extends Screen implements ConfigPanelHost {
     }
 
     @Override
-    protected void charTyped(char chr, int keyCode) {
+    protected void keyPressed(char chr, int keyCode) {
         panel.keyPressed(this, chr, keyCode);
     }
 
