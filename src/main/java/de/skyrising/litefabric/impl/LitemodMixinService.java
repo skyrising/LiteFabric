@@ -2,7 +2,6 @@ package de.skyrising.litefabric.impl;
 
 import de.skyrising.litefabric.impl.util.RemappingReferenceMapper;
 import de.skyrising.litefabric.impl.util.ShadedGsonHelper;
-import org.apache.commons.lang3.tuple.Pair;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.objectweb.asm.tree.ClassNode;
@@ -10,7 +9,6 @@ import org.spongepowered.asm.launch.MixinInitialisationError;
 import org.spongepowered.asm.launch.platform.container.IContainerHandle;
 import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.Mixins;
-import org.spongepowered.asm.mixin.extensibility.IMixinConfig;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
 import org.spongepowered.asm.mixin.refmap.IReferenceMapper;
 import org.spongepowered.asm.mixin.refmap.ReferenceMapper;
@@ -28,14 +26,11 @@ import java.lang.reflect.Method;
 import java.net.URL;
 import java.util.Collection;
 import java.util.HashMap;
-import java.util.LinkedHashMap;
 import java.util.Map;
 
 public class LitemodMixinService extends MixinServiceAbstract implements IClassBytecodeProvider, IClassProvider {
     private static final Logger LOGGER = LogManager.getLogger();
     private static final Map<String, Config> allLitemodConfigs = new HashMap<>();
-    private static final Map<Config, String> refMaps = new LinkedHashMap<>();
-    private static final Map<Config, IMixinService> services = new HashMap<>();
     private static final Class<?> MixinConfig_class;
     private static final MethodHandle MixinConfig_onLoad;
     private static final MethodHandle MixinConfig_getHandle;
@@ -158,14 +153,9 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
             if (resource == null) {
                 throw new IllegalArgumentException(String.format("The specified resource '%s' was invalid or could not be read", configFile));
             }
-            Pair<String, Object> parsedConfig = ShadedGsonHelper.parseMixinConfig(resource, MixinConfig_class);
-            String refMap = parsedConfig.getLeft();
-            Object config = parsedConfig.getRight();
+            Object config = ShadedGsonHelper.parseMixinConfig(resource, configFile, MixinConfig_class);
             if ((boolean) MixinConfig_onLoad.invoke(config, service, configFile, MixinEnvironment.getDefaultEnvironment())) {
-                Config cfg = (Config) MixinConfig_getHandle.invoke(config);
-                if (refMap != null) refMaps.put(cfg, refMap);
-                services.put(cfg, service);
-                return cfg;
+                return (Config) MixinConfig_getHandle.invoke(config);
             }
             return null;
         } catch (IllegalArgumentException ex) {
@@ -193,17 +183,6 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
             Method select = processor.getClass().getDeclaredMethod("select", MixinEnvironment.class);
             select.setAccessible(true);
             select.invoke(processor, env);
-            for (Map.Entry<Config, String> e : refMaps.entrySet()) {
-                Config config = e.getKey();
-                String refMapFile = e.getValue();
-                IMixinService service = services.get(config);
-                IReferenceMapper refMapper = ReferenceMapper.read(new InputStreamReader(service.getResourceAsStream(refMapFile)), refMapFile);
-                IReferenceMapper remappingRefMapper = new RemappingReferenceMapper(refMapper, LiteFabric.getInstance().getRemapper());
-                IMixinConfig cfg = config.getConfig();
-                Field refMapperField = cfg.getClass().getDeclaredField("refMapper");
-                refMapperField.setAccessible(true);
-                refMapperField.set(cfg, remappingRefMapper);
-            }
         } catch (ReflectiveOperationException e) {
             e.printStackTrace();
         }
@@ -232,7 +211,14 @@ public class LitemodMixinService extends MixinServiceAbstract implements IClassB
 
     @Override
     public Class<?> findClass(String name, boolean initialize) throws ClassNotFoundException {
+        if (name.endsWith("$LiteFabricRefMapper")) {
+            return RemappingReferenceMapper.createClassFor(name, this);
+        }
         return Class.forName(name, initialize, LiteFabric.getInstance().combinedClassLoader);
+    }
+
+    public IReferenceMapper getReferenceMapper(String resourceName) {
+        return ReferenceMapper.read(new InputStreamReader(getResourceAsStream(resourceName)), resourceName);
     }
 
     @Override

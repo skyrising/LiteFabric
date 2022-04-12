@@ -1,8 +1,13 @@
 package de.skyrising.litefabric.impl.util;
 
+import de.skyrising.litefabric.impl.LiteFabric;
+import de.skyrising.litefabric.impl.LitemodMixinService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Type;
+import org.spongepowered.asm.mixin.MixinEnvironment;
 import org.spongepowered.asm.mixin.extensibility.IRemapper;
 import org.spongepowered.asm.mixin.injection.struct.MemberInfo;
 import org.spongepowered.asm.mixin.refmap.IClassReferenceMapper;
@@ -11,7 +16,9 @@ import org.spongepowered.asm.mixin.refmap.IReferenceMapper;
 import java.util.HashMap;
 import java.util.Map;
 
-public final class RemappingReferenceMapper implements IClassReferenceMapper, IReferenceMapper {
+import static org.objectweb.asm.Opcodes.*;
+
+public abstract class RemappingReferenceMapper implements IClassReferenceMapper, IReferenceMapper {
     private static final Logger LOGGER = LogManager.getLogger();
     final static ThreadLocal<String> targetClass = new ThreadLocal<>();
 
@@ -19,11 +26,34 @@ public final class RemappingReferenceMapper implements IClassReferenceMapper, IR
 
     private final IRemapper remapper;
 
-    private final Map<String, String> mappedReferenceCache = new HashMap<String, String>();
+    private final Map<String, String> mappedReferenceCache = new HashMap<>();
 
-    public RemappingReferenceMapper(IReferenceMapper refMap, IRemapper remapper) {
-        this.refMap = refMap;
-        this.remapper = remapper;
+    public static Class<?> createClassFor(String name, LitemodMixinService service) {
+        ClassWriter writer = new ClassWriter(0);
+        writer.visit(V1_8, ACC_PUBLIC, name.replace('.', '/'), null, Type.getInternalName(RemappingReferenceMapper.class), null);
+        writer.visitField(ACC_PUBLIC | ACC_STATIC, "SERVICE", Type.getDescriptor(LitemodMixinService.class), null, null).visitEnd();
+        MethodVisitor init = writer.visitMethod(ACC_PUBLIC, "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(MixinEnvironment.class), Type.getType(IReferenceMapper.class)), null, null);
+        init.visitCode();
+        init.visitVarInsn(ALOAD, 0);
+        init.visitFieldInsn(GETSTATIC, name.replace('.', '/'), "SERVICE", Type.getDescriptor(LitemodMixinService.class));
+        init.visitVarInsn(ALOAD, 2);
+        init.visitMethodInsn(INVOKESPECIAL, Type.getInternalName(RemappingReferenceMapper.class), "<init>", Type.getMethodDescriptor(Type.VOID_TYPE, Type.getType(LitemodMixinService.class), Type.getType(IReferenceMapper.class)), false);
+        init.visitInsn(RETURN);
+        init.visitMaxs(3, 3);
+        init.visitEnd();
+        byte[] bytes = writer.toByteArray();
+        Class<?> cls = LiteFabric.getInstance().combinedClassLoader.defineClass(name, bytes);
+        try {
+            cls.getField("SERVICE").set(null, service);
+        } catch (ReflectiveOperationException e) {
+            throw new RuntimeException(e);
+        }
+        return cls;
+    }
+
+    protected RemappingReferenceMapper(LitemodMixinService service, IReferenceMapper refMap) {
+        this.refMap = service.getReferenceMapper(refMap.getResourceName());
+        this.remapper = LiteFabric.getInstance().getRemapper();
     }
 
     @Override
@@ -118,7 +148,6 @@ public final class RemappingReferenceMapper implements IClassReferenceMapper, IR
 
     @Override
     public String remapClassNameWithContext(String context, String className, String remapped) {
-        System.out.println("remapClassName(" + className + ", " + remapped + ")");
         String origInfoString;
         if (this.refMap instanceof IClassReferenceMapper) {
             origInfoString = ((IClassReferenceMapper) this.refMap).remapClassNameWithContext(context, className, remapped);

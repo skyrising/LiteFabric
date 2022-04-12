@@ -57,7 +57,7 @@ public class LiteFabric {
     private final LitemodRemapper remapper;
     final Map<String, LitemodContainer> mods = new LinkedHashMap<>();
     private final ClientPluginChannelsImpl clientPluginChannels = new ClientPluginChannelsImpl();
-    final CombinedClassLoader combinedClassLoader = new CombinedClassLoader();
+    public final CombinedClassLoader combinedClassLoader = new CombinedClassLoader();
     private final Map<LitemodContainer, LiteMod> modInstances = new HashMap<>();
     public final ConfigManager configManager = new ConfigManager();
     private final InputImpl input = new InputImpl();

@@ -8,7 +8,7 @@ import java.security.SecureClassLoader;
 import java.util.ArrayList;
 import java.util.List;
 
-class CombinedClassLoader extends SecureClassLoader {
+public class CombinedClassLoader extends SecureClassLoader {
     static final ClassLoader knotClassLoader;
     private static final Field urlLoaderField;
     private final List<LitemodClassProvider> classLoaders = new ArrayList<>();
@@ -53,13 +53,17 @@ class CombinedClassLoader extends SecureClassLoader {
             for (LitemodClassProvider loader : classLoaders) {
                 byte[] bytes = loader.getClassBytes(name);
                 if (bytes == null) continue;
-                c = defineClass(name, bytes, 0, bytes.length);
+                c = defineClass(name, bytes);
                 break;
             }
             if (c == null) c = knotClassLoader.loadClass(name);
             if (resolve) resolveClass(c);
             return c;
         }
+    }
+
+    public Class<?> defineClass(String name, byte[] bytes) {
+        return defineClass(name, bytes, 0, bytes.length);
     }
 
     @Override
