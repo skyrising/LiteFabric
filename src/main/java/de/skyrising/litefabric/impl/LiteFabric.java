@@ -48,9 +48,9 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 
 public class LiteFabric {
-    public static final boolean PROFILE_STARTUP = false;
-    public static final boolean DUMP_CLASSES = true;
-    public static final boolean DUMP_RESOURCES = true;
+    public static final boolean PROFILE_STARTUP = System.getProperty("litefabric.profile.startup", "false").equals("true");
+    public static final boolean DUMP_CLASSES = System.getProperty("litefabric.dump.classes", "false").equals("true");
+    public static final boolean DUMP_RESOURCES = System.getProperty("litefabric.dump.resources", "false").equals("true");
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric");
     static final Path TMP_FILES = Paths.get(".litefabric/tmp/");
     private static final LiteFabric INSTANCE = new LiteFabric();
