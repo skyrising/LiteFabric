@@ -1,6 +1,5 @@
 package de.skyrising.litefabric.impl;
 
-import com.google.common.jimfs.Jimfs;
 import com.mojang.realmsclient.dto.RealmsServer;
 import de.skyrising.litefabric.impl.core.ClientPluginChannelsImpl;
 import de.skyrising.litefabric.impl.modconfig.ConfigManager;
@@ -38,6 +37,7 @@ import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
@@ -52,8 +52,8 @@ public class LiteFabric {
     public static final boolean DUMP_CLASSES = true;
     public static final boolean DUMP_RESOURCES = true;
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric");
+    static final Path TMP_FILES = Paths.get(".litefabric/tmp/");
     private static final LiteFabric INSTANCE = new LiteFabric();
-    static final FileSystem TMP_FILES = Jimfs.newFileSystem();
     private final LitemodRemapper remapper;
     final Map<String, LitemodContainer> mods = new LinkedHashMap<>();
     private final ClientPluginChannelsImpl clientPluginChannels = new ClientPluginChannelsImpl();
@@ -64,7 +64,13 @@ public class LiteFabric {
     private boolean frozen = false;
 
     private LiteFabric() {
-        deleteDebugOut();
+        deleteDirectory(Paths.get(".litefabric.out"));
+        deleteDirectory(TMP_FILES);
+        try {
+            Files.createDirectories(TMP_FILES);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
         MappingConfiguration mappings = FabricLauncherBase.getLauncher().getMappingConfiguration();
         remapper = new LitemodRemapper(mappings.getMappings(), FabricLoader.getInstance().isDevelopmentEnvironment() ? "named" : "intermediary");
         LitemodMixinService.addRemapper(remapper);
@@ -384,11 +390,10 @@ public class LiteFabric {
         return null;
     }
 
-    private static void deleteDebugOut() {
-        Path out = Paths.get(".litefabric.out");
-        if (!Files.exists(out)) return;
+    private static void deleteDirectory(Path directory) {
+        if (!Files.exists(directory)) return;
         try {
-            Files.walkFileTree(out, new SimpleFileVisitor<Path>() {
+            Files.walkFileTree(directory, new SimpleFileVisitor<Path>() {
                 @Override
                 public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                     Files.delete(file);

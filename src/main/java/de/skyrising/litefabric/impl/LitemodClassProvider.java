@@ -218,9 +218,10 @@ class LitemodClassProvider {
     }
 
     URL findResource(String name) {
+        if (name.startsWith("com/google/")) return null;
         try {
             if (name.endsWith(".class")) {
-                Path tmpPath = LiteFabric.TMP_FILES.getPath(name);
+                Path tmpPath = LiteFabric.TMP_FILES.resolve(name);
                 if (Files.exists(tmpPath)) return tmpPath.toUri().toURL();
                 byte[] classBytes = getClassBytes(name.substring(0, name.length() - 6));
                 if (classBytes != null) {
