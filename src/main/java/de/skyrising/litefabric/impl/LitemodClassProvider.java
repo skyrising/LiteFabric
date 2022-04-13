@@ -30,7 +30,7 @@ import java.util.function.Function;
 
 class LitemodClassProvider {
     private static final Logger LOGGER = LogManager.getFormatterLogger("LiteFabric|ClassProvider");
-    private static final String SCREEN_CLASS = classNameOf("class_5641");
+    private static final String SCREEN_CLASS = classNameOf("class_388");
     private static final Set<String> CONFIG_GUI_SUPER_CLASSES = new HashSet<>(Arrays.asList(
         "fi/dy/masa/malilib/gui/GuiConfigsBase",
         SCREEN_CLASS
