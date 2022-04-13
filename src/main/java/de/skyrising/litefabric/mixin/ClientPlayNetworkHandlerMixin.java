@@ -15,7 +15,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ClientPlayNetworkHandler.class)
 public abstract class ClientPlayNetworkHandlerMixin implements ClientPlayPacketListener {
-    @Inject(method = "onGameJoin", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;method_32357(Lnet/minecraft/network/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/util/Threadable;)V", shift = At.Shift.AFTER))
+    @Inject(method = "onGameJoin", at = @At(value = "INVOKE", target = "Lnet/minecraft/network/NetworkThreadUtils;forceMainThread(Lnet/minecraft/network/Packet;Lnet/minecraft/network/listener/PacketListener;Lnet/minecraft/util/ThreadExecutor;)V", shift = At.Shift.AFTER))
     private void litefabric$onJoinGame(GameJoinS2CPacket packet, CallbackInfo ci) {
         try {
             LiteFabric.getInstance().onJoinGame(this, packet, MinecraftClient.getInstance().getCurrentServerEntry());
@@ -33,7 +33,7 @@ public abstract class ClientPlayNetworkHandlerMixin implements ClientPlayPacketL
         }
     }
 
-    @Inject(method = "onChatMessage", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;addChatMessage(Lnet/minecraft/network/MessageType;Lnet/minecraft/text/Text;)V"), cancellable = true)
+    @Inject(method = "onChatMessage", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;method_14471(Lnet/minecraft/util/ChatMessageType;Lnet/minecraft/text/Text;)V"), cancellable = true)
     private void litefabric$onChat(ChatMessageS2CPacket packet, CallbackInfo ci) {
         Text original = packet.getMessage();
         if (original == null) return;
