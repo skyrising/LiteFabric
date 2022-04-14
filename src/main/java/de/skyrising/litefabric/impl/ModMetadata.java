@@ -11,6 +11,8 @@ public class ModMetadata {
     public final String mcversion;
     public final String revision;
     public final List<String> mixinConfigs;
+    public String dynamicVersion;
+    public String dynamicDisplayName;
 
     public ModMetadata(String name, String displayName, String description, String version, String author, String mcversion, String revision, List<String> mixinConfigs) {
         this.name = name;

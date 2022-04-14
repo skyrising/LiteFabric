@@ -65,6 +65,12 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
                 mod.init(configPath);
                 // VoxelMap depends on itself being a ZipResourcePack with a non-null zipFile
                 if ("voxelmap".equalsIgnoreCase(meta.name)) super.containsFile("");
+                try {
+                    this.meta.dynamicVersion = mod.getVersion();
+                } catch (Throwable ignored) {}
+                try {
+                    this.meta.dynamicDisplayName = mod.getName();
+                } catch (Throwable ignored) {}
                 return mod;
             } catch (Throwable t) {
                 throw new RuntimeException("Failed to initialize LiteMod " + meta.name, t);

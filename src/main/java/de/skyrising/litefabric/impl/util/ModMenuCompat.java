@@ -40,55 +40,28 @@ public class ModMenuCompat implements ModMenuApi {
 
     static class LiteModMenuEntry implements Mod {
         private final LitemodContainer mod;
-        private final String id;
-        private final String name;
-        private final String summary;
-        private final String description;
-        private final String version;
-        private final Set<String> authors;
-        private final String website;
-        private final String logo;
 
         public LiteModMenuEntry(LitemodContainer mod) {
             this.mod = mod;
-            this.id = mod.meta.name;
-            String name = mod.meta.displayName;
-            if (name == null) name = id;
-            if (name.startsWith("root project '") && name.length() > 14) name = name.substring(14, name.length() - 1);
-            this.name = name;
-            String description = mod.meta.description;
-            if (description == null) description = "";
-            String version = mod.meta.version;
-            if (version == null) version = mod.meta.mcversion + "-" + mod.meta.revision;
-            this.authors = Arrays.stream(Objects.toString(mod.meta.author, "").split(",")).map(String::trim).collect(Collectors.toCollection(LinkedHashSet::new));
-            String website = null;
-            String logo = null;
-            if (mod.mcmodInfo != null) {
-                if (description.isEmpty() && mod.mcmodInfo.description != null) description = mod.mcmodInfo.description;
-                if (mod.mcmodInfo.authors != null) authors.addAll(mod.mcmodInfo.authors);
-                website = mod.mcmodInfo.url;
-                logo = mod.mcmodInfo.logoFile;
-            }
-            this.description = description;
-            this.summary = description.split("\n")[0];
-            if (version.startsWith("v")) version = version.substring(1);
-            this.version = version;
-            this.website = website;
-            this.logo = logo;
         }
 
         @Override
         public @NotNull String getId() {
-            return id;
+            return mod.meta.name;
         }
 
         @Override
         public @NotNull String getName() {
+            String name = mod.meta.dynamicDisplayName;
+            if (name == null) name = mod.meta.displayName;
+            if (name == null) name = getId();
+            if (name.startsWith("root project '") && name.length() > 14) name = name.substring(14, name.length() - 1);
             return name;
         }
 
         @Override
         public @NotNull NativeImageBackedTexture getIcon(ModIconHandler iconHandler, int i) {
+            String logo = mod.mcmodInfo != null ? mod.mcmodInfo.logoFile : null;
             if (logo != null && !logo.isEmpty()) {
                 return ModMenuCompat.ICON_HANDLER.createIcon(mod, logo);
             }
@@ -97,41 +70,56 @@ public class ModMenuCompat implements ModMenuApi {
 
         @Override
         public @NotNull String getSummary() {
-            return summary;
+            return getDescription().split("\n")[0];
         }
 
         @Override
         public @NotNull String getDescription() {
+            String description = mod.meta.description;
+            if (description == null) description = "";
+            if (mod.mcmodInfo != null && description.isEmpty() && mod.mcmodInfo.description != null) {
+                description = mod.mcmodInfo.description;
+            }
             return description;
         }
 
         @Override
         public @NotNull String getVersion() {
+            String version = mod.meta.version;
+            if (version == null) version = mod.meta.dynamicVersion;
+            if (version == null) version = mod.meta.mcversion + "-" + mod.meta.revision;
+            if (version.startsWith("v")) version = version.substring(1);
             return version;
+        }
+
+        private Set<String> getAuthorsSet() {
+            return Arrays.stream(Objects.toString(mod.meta.author, "").split(",")).map(String::trim).collect(Collectors.toCollection(LinkedHashSet::new));
         }
 
         @Override
         public @NotNull List<String> getAuthors() {
-            return new ArrayList<>(authors);
+            return new ArrayList<>(getAuthorsSet());
         }
 
         @Override
         public @NotNull List<String> getContributors() {
-            return Collections.emptyList();
+            Set<String> authors = getAuthorsSet();
+            if (mod.mcmodInfo != null && mod.mcmodInfo.authors != null) authors.addAll(mod.mcmodInfo.authors);
+            return new ArrayList<>(authors);
         }
 
         @Override
         public @NotNull Set<Badge> getBadges() {
             Set<Badge> badges = new HashSet<>();
             badges.add(Badge.LITELOADER);
-            if (description.toLowerCase(Locale.ROOT).contains("client")) badges.add(Badge.CLIENT);
-            if (id.toLowerCase(Locale.ROOT).endsWith("lib")) badges.add(Badge.LIBRARY);
+            if (getDescription().toLowerCase(Locale.ROOT).contains("client")) badges.add(Badge.CLIENT);
+            if (getId().toLowerCase(Locale.ROOT).endsWith("lib")) badges.add(Badge.LIBRARY);
             return badges;
         }
 
         @Override
         public @Nullable String getWebsite() {
-            return website;
+            return mod.mcmodInfo != null ? mod.mcmodInfo.url : null;
         }
 
         @Override
