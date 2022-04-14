@@ -56,6 +56,7 @@ public class LiteFabric {
     private static final LiteFabric INSTANCE = new LiteFabric();
     private final LitemodRemapper remapper;
     final Map<String, LitemodContainer> mods = new LinkedHashMap<>();
+    private final Map<String, McmodInfo> mcmodInfos = new HashMap<>();
     private final ClientPluginChannelsImpl clientPluginChannels = new ClientPluginChannelsImpl();
     public final CombinedClassLoader combinedClassLoader = new CombinedClassLoader();
     private final Map<LitemodContainer, LiteMod> modInstances = new HashMap<>();
@@ -94,6 +95,7 @@ public class LiteFabric {
         synchronized (mods) {
             if (mods.containsKey(name)) throw new IllegalStateException("Trying to add mod that already exists: " + name);
             mods.put(name, mod);
+            mcmodInfos.putAll(mod.mcmodInfos);
             LitemodClassProvider classLoader = mod.getClassProvider();
             combinedClassLoader.add(classLoader);
             List<String> mixinConfigs = mod.meta.mixinConfigs;
@@ -117,6 +119,9 @@ public class LiteFabric {
     public void preLaunch() {
         if (frozen) return;
         frozen = true;
+        for (LitemodContainer mod : mods.values()) {
+            mod.mcmodInfo = mcmodInfos.get(mod.meta.name);
+        }
         LitemodMixinService.checkSelect();
         switch (mods.size()) {
             case 0:

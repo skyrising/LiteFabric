@@ -24,7 +24,7 @@ public class MinecraftClientMixin {
 
     @Shadow @Final public Profiler profiler;
 
-    @Inject(method = "initializeGame", at = @At(value = "FIELD", target = "Lnet/minecraft/client/MinecraftClient;options:Lnet/minecraft/client/options/GameOptions;", ordinal = 0, shift = At.Shift.AFTER))
+    @Inject(method = "initializeGame", at = @At(value = "NEW", target = "net/minecraft/client/render/GameRenderer"))
     private void litefabric$onGameInitStart(CallbackInfo ci) {
         LiteFabric.getInstance().onClientInit();
     }

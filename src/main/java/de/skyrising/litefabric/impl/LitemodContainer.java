@@ -37,12 +37,16 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
         if (a.length() == b.length()) return a.compareTo(b);
         return a.length() - b.length();
     });
+    public final Map<String, McmodInfo> mcmodInfos;
+    @Nullable
+    public McmodInfo mcmodInfo;
     private final FileSystemUtil.FileSystemDelegate fileSystem;
     final LitemodClassProvider classProvider;
 
-    public LitemodContainer(Path path, ModMetadata meta, List<String> entryPoints, FileSystemUtil.FileSystemDelegate fileSystem, LitemodRemapper remapper) {
+    public LitemodContainer(Path path, ModMetadata meta, Map<String, McmodInfo> mcmodInfos, List<String> entryPoints, FileSystemUtil.FileSystemDelegate fileSystem, LitemodRemapper remapper) {
         super(path.toFile());
         this.meta = meta;
+        this.mcmodInfos = mcmodInfos == null ? Collections.emptyMap() : Collections.unmodifiableMap(mcmodInfos);
         this.entryPoints = Collections.unmodifiableList(entryPoints);
         this.fileSystem = fileSystem;
         this.classProvider = new LitemodClassProvider(this, fileSystem.get(), remapper);
@@ -77,10 +81,11 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
     public static Optional<LitemodContainer> load(Path path, LitemodRemapper remapper) {
         FabricLoader loader = (FabricLoader) net.fabricmc.loader.api.FabricLoader.getInstance();
         FileSystemUtil.FileSystemDelegate jarFs;
-        Path modJson, rootDir;
+        Path modJson, mcmodInfo, rootDir;
         try {
             jarFs = FileSystemUtil.getJarFileSystem(path, false);
             modJson = jarFs.get().getPath("litemod.json");
+            mcmodInfo = jarFs.get().getPath("mcmod.info");
             rootDir = jarFs.get().getRootDirectories().iterator().next();
         } catch (IOException e) {
             throw new RuntimeException("Failed to open mod JAR at " + path + "!");
@@ -100,6 +105,16 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
             Log.warn(DISCOVERY, "Could not load litemod.json in " + path + ": " + e.getMessage());
             return Optional.empty();
         }
+        Map<String, McmodInfo> mcmodInfos = null;
+        if (Files.exists(mcmodInfo)) {
+            try {
+                 mcmodInfos = McmodInfo.parse(Files.newBufferedReader(mcmodInfo, StandardCharsets.UTF_8));
+            } catch (IOException e) {
+                Log.warn(DISCOVERY, "Failed to read mcmod.info in " + path + ": " + e.getMessage());
+            } catch (JsonParseException e) {
+                Log.warn(DISCOVERY, "Could not load mcmod.info in " + path + ": " + e.getMessage());
+            }
+        }
         List<String> entryPoints = new ArrayList<>();
         try {
             Files.walk(rootDir).filter(p -> {
@@ -115,14 +130,14 @@ public class LitemodContainer extends ZipResourcePack implements ResourcePack {
         } catch (IOException e) {
             throw new RuntimeException("Could not search for LiteMod entry point", e);
         }
-        return Optional.of(new LitemodContainer(path, meta, entryPoints, jarFs, remapper));
+        return Optional.of(new LitemodContainer(path, meta, mcmodInfos, entryPoints, jarFs, remapper));
     }
 
     private Path getPath(Identifier id) {
         return fileSystem.get().getPath("assets", id.getNamespace(), id.getPath());
     }
 
-    private Path getPath(String file) {
+    public Path getPath(String file) {
         return fileSystem.get().getPath(file);
     }
 

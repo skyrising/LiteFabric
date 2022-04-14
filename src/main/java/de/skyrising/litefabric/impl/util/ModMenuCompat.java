@@ -16,6 +16,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ModMenuCompat implements ModMenuApi {
+    private static final LitemodIconHandler ICON_HANDLER = new LitemodIconHandler();
+
     public ModMenuCompat() {
         for (LitemodContainer mod : LiteFabric.getInstance().getMods()) {
             LiteModMenuEntry entry = new LiteModMenuEntry(mod);
@@ -37,26 +39,42 @@ public class ModMenuCompat implements ModMenuApi {
     }
 
     static class LiteModMenuEntry implements Mod {
+        private final LitemodContainer mod;
         private final String id;
         private final String name;
         private final String summary;
         private final String description;
         private final String version;
-        private final List<String> authors;
+        private final Set<String> authors;
+        private final String website;
+        private final String logo;
 
         public LiteModMenuEntry(LitemodContainer mod) {
+            this.mod = mod;
             this.id = mod.meta.name;
             String name = mod.meta.displayName;
             if (name == null) name = id;
+            if (name.startsWith("root project '") && name.length() > 14) name = name.substring(14, name.length() - 1);
             this.name = name;
             String description = mod.meta.description;
             if (description == null) description = "";
+            String version = mod.meta.version;
+            if (version == null) version = mod.meta.mcversion + "-" + mod.meta.revision;
+            this.authors = Arrays.stream(Objects.toString(mod.meta.author, "").split(",")).map(String::trim).collect(Collectors.toCollection(LinkedHashSet::new));
+            String website = null;
+            String logo = null;
+            if (mod.mcmodInfo != null) {
+                if (description.isEmpty() && mod.mcmodInfo.description != null) description = mod.mcmodInfo.description;
+                if (mod.mcmodInfo.authors != null) authors.addAll(mod.mcmodInfo.authors);
+                website = mod.mcmodInfo.url;
+                logo = mod.mcmodInfo.logoFile;
+            }
             this.description = description;
             this.summary = description.split("\n")[0];
-            String version = mod.meta.version;
             if (version.startsWith("v")) version = version.substring(1);
             this.version = version;
-            this.authors = Arrays.stream(Objects.toString(mod.meta.author, "").split(",")).map(String::trim).collect(Collectors.toList());
+            this.website = website;
+            this.logo = logo;
         }
 
         @Override
@@ -71,6 +89,9 @@ public class ModMenuCompat implements ModMenuApi {
 
         @Override
         public @NotNull NativeImageBackedTexture getIcon(ModIconHandler iconHandler, int i) {
+            if (logo != null && !logo.isEmpty()) {
+                return ModMenuCompat.ICON_HANDLER.createIcon(mod, logo);
+            }
             return iconHandler.createIcon(FabricLoader.getInstance().getModContainer(ModMenu.MOD_ID).orElseThrow(() -> new RuntimeException("Cannot get ModContainer for Fabric mod with id " + ModMenu.MOD_ID)), "assets/" + ModMenu.MOD_ID + "/unknown_icon.png");
         }
 
@@ -91,7 +112,7 @@ public class ModMenuCompat implements ModMenuApi {
 
         @Override
         public @NotNull List<String> getAuthors() {
-            return authors;
+            return new ArrayList<>(authors);
         }
 
         @Override
@@ -101,12 +122,16 @@ public class ModMenuCompat implements ModMenuApi {
 
         @Override
         public @NotNull Set<Badge> getBadges() {
-            return Collections.singleton(Badge.LITELOADER);
+            Set<Badge> badges = new HashSet<>();
+            badges.add(Badge.LITELOADER);
+            if (description.toLowerCase(Locale.ROOT).contains("client")) badges.add(Badge.CLIENT);
+            if (id.toLowerCase(Locale.ROOT).endsWith("lib")) badges.add(Badge.LIBRARY);
+            return badges;
         }
 
         @Override
         public @Nullable String getWebsite() {
-            return null;
+            return website;
         }
 
         @Override
