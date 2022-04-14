@@ -1,5 +1,7 @@
 package de.skyrising.litefabric.impl;
 
+import de.skyrising.litefabric.impl.fs.LitefabricFileSystemProvider;
+import de.skyrising.litefabric.impl.fs.UrlHandler;
 import de.skyrising.litefabric.impl.util.RemappingReferenceMapper;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.entrypoint.PreLaunchEntrypoint;
@@ -21,6 +23,8 @@ public class PreLaunch implements PreLaunchEntrypoint {
         // Don't ask
         //noinspection ResultOfMethodCallIgnored
         RemappingReferenceMapper.class.getName();
+        LitefabricFileSystemProvider.install();
+        UrlHandler.register();
         FabricLoader loader = FabricLoader.getInstance();
         Path gameDir = loader.getGameDir();
         Path modsDir = gameDir.resolve("mods");

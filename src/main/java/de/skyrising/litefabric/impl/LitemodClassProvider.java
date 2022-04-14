@@ -1,6 +1,7 @@
 package de.skyrising.litefabric.impl;
 
-import de.skyrising.litefabric.impl.fs.UrlHandler;
+import de.skyrising.litefabric.impl.fs.FileAccess;
+import de.skyrising.litefabric.impl.fs.LitefabricFileSystemProvider;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -29,7 +30,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.Function;
 
-class LitemodClassProvider {
+class LitemodClassProvider implements FileAccess {
     private static final Logger LOGGER = LogManager.getFormatterLogger("LiteFabric|ClassProvider");
     private static final String SCREEN_CLASS = classNameOf("class_388");
     private static final Set<String> CONFIG_GUI_SUPER_CLASSES = new HashSet<>(Arrays.asList(
@@ -50,15 +51,15 @@ class LitemodClassProvider {
     private final Map<String, ClassNode> classNodeCache = new HashMap<>();
     private final ThreadLocal<LinkedList<String>> currentClasses = ThreadLocal.withInitial(LinkedList::new);
     private final Set<String> classes = new HashSet<>();
-    private final Map<String, byte[]> resources = new HashMap<>();
+    private final FileSystem remappedFileSystem;
 
     public LitemodClassProvider(LitemodContainer mod, FileSystem fileSystem, LitemodRemapper remapper) {
         this.mod = mod;
         this.fileSystem = fileSystem;
         this.remapper = remapper;
         INSTANCES.put(this, null);
-        UrlHandler.register(mod.meta.name, resources::get);
         try {
+            this.remappedFileSystem = LitefabricFileSystemProvider.getInstance().newFileSystem(mod.meta.name, this);
             cachePackages();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
@@ -78,6 +79,19 @@ class LitemodClassProvider {
                 }
             });
         }
+    }
+
+    @Override
+    public byte[] getBytes(String path) throws IOException {
+        if (path.endsWith(".class")) {
+            return getClassBytes(path.substring(1, path.length() - 6));
+        }
+        return Files.readAllBytes(fileSystem.getPath(path));
+    }
+
+    @Override
+    public BasicFileAttributes getAttributes(String path) throws IOException {
+        return Files.readAttributes(fileSystem.getPath(path), BasicFileAttributes.class);
     }
 
     byte[] getClassBytes(String name) {
@@ -223,10 +237,8 @@ class LitemodClassProvider {
     URL findResource(String name) {
         try {
             if (name.endsWith(".class")) {
-                byte[] classBytes = getClassBytes(name.substring(0, name.length() - 6));
-                if (classBytes != null) {
-                    resources.put(name, classBytes);
-                    return new URL("litefabric", mod.meta.name, -1, "/" + name, UrlHandler.getInstance());
+                if (getClassBytes(name.substring(0, name.length() - 6)) != null) {
+                    return remappedFileSystem.getPath(name).toUri().toURL();
                 }
                 return null;
             }
