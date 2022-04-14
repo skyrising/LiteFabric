@@ -1,5 +1,6 @@
 package de.skyrising.litefabric.impl;
 
+import de.skyrising.litefabric.impl.url.litefabric.Handler;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -49,12 +50,14 @@ class LitemodClassProvider {
     private final Map<String, ClassNode> classNodeCache = new HashMap<>();
     private final ThreadLocal<LinkedList<String>> currentClasses = ThreadLocal.withInitial(LinkedList::new);
     private final Set<String> classes = new HashSet<>();
+    private final Map<String, byte[]> resources = new HashMap<>();
 
     public LitemodClassProvider(LitemodContainer mod, FileSystem fileSystem, LitemodRemapper remapper) {
         this.mod = mod;
         this.fileSystem = fileSystem;
         this.remapper = remapper;
         INSTANCES.put(this, null);
+        Handler.register(mod.meta.name, resources::get);
         try {
             cachePackages();
         } catch (IOException e) {
@@ -218,16 +221,12 @@ class LitemodClassProvider {
     }
 
     URL findResource(String name) {
-        if (name.startsWith("com/google/")) return null;
         try {
             if (name.endsWith(".class")) {
-                Path tmpPath = LiteFabric.TMP_FILES.resolve(name);
-                if (Files.exists(tmpPath)) return tmpPath.toUri().toURL();
                 byte[] classBytes = getClassBytes(name.substring(0, name.length() - 6));
                 if (classBytes != null) {
-                    Files.createDirectories(tmpPath.getParent());
-                    Files.write(tmpPath, classBytes);
-                    return tmpPath.toUri().toURL();
+                    resources.put(name, classBytes);
+                    return new URL("litefabric", mod.meta.name, "/" + name);
                 }
                 return null;
             }

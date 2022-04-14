@@ -37,7 +37,6 @@ import org.spongepowered.asm.mixin.transformer.ext.Extensions;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodType;
 import java.lang.reflect.Constructor;
@@ -52,7 +51,6 @@ public class LiteFabric {
     public static final boolean DUMP_CLASSES = System.getProperty("litefabric.dump.classes", "false").equals("true");
     public static final boolean DUMP_RESOURCES = System.getProperty("litefabric.dump.resources", "false").equals("true");
     private static final Logger LOGGER = LogManager.getLogger("LiteFabric");
-    static final Path TMP_FILES = Paths.get(".litefabric/tmp/");
     private static final LiteFabric INSTANCE = new LiteFabric();
     private final LitemodRemapper remapper;
     final Map<String, LitemodContainer> mods = new LinkedHashMap<>();
@@ -66,12 +64,6 @@ public class LiteFabric {
 
     private LiteFabric() {
         deleteDirectory(Paths.get(".litefabric.out"));
-        deleteDirectory(TMP_FILES);
-        try {
-            Files.createDirectories(TMP_FILES);
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
         MappingConfiguration mappings = FabricLauncherBase.getLauncher().getMappingConfiguration();
         remapper = new LitemodRemapper(mappings.getMappings(), FabricLoader.getInstance().isDevelopmentEnvironment() ? "named" : "intermediary");
         LitemodMixinService.addRemapper(remapper);
