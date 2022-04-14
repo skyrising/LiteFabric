@@ -1,31 +1,29 @@
-package de.skyrising.litefabric.impl.url.litefabric;
+package de.skyrising.litefabric.impl.fs;
 
 import java.io.ByteArrayInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
 import java.net.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 
-public final class Handler extends URLStreamHandler {
+public final class UrlHandler extends URLStreamHandler {
+    private static final UrlHandler INSTANCE = new UrlHandler();
     static {
-        StringBuilder pkgs = new StringBuilder(System.getProperty("java.protocol.handler.pkgs", ""));
-        if (pkgs.length() != 0) pkgs.append('|');
-        pkgs.append("de.skyrising.litefabric.impl.url");
-        System.setProperty("java.protocol.handler.pkgs", pkgs.toString());
+        URL.setURLStreamHandlerFactory(protocol -> protocol.equals("litefabric") ? INSTANCE : null);
+    }
+    private final Map<String, Function<String, byte[]>> handlers = new HashMap<>();
+
+    private UrlHandler() {}
+
+    public static UrlHandler getInstance() {
+        return INSTANCE;
     }
 
     public static void register(String id, Function<String, byte[]> handler) {
-        try {
-            Field handlers = ClassLoader.getSystemClassLoader().loadClass(Connection.class.getName()).getField("HANDLERS");
-            //noinspection unchecked
-            ((Map<String, Function<String, byte[]>>) handlers.get(null)).put(id, handler);
-        } catch (ReflectiveOperationException e) {
-            throw new RuntimeException(e);
-        }
+        INSTANCE.handlers.put(id, handler);
     }
 
     @Override
@@ -38,9 +36,7 @@ public final class Handler extends URLStreamHandler {
         return null;
     }
 
-    public static final class Connection extends URLConnection {
-        @SuppressWarnings("MismatchedQueryAndUpdateOfCollection")
-        public static final Map<String, Function<String, byte[]>> HANDLERS = new HashMap<>();
+    public final class Connection extends URLConnection {
         private InputStream stream;
 
         Connection(URL url) {
@@ -50,7 +46,7 @@ public final class Handler extends URLStreamHandler {
         @Override
         public void connect() throws IOException {
             if (stream != null) return;
-            Function<String, byte[]> handler = HANDLERS.get(url.getHost());
+            Function<String, byte[]> handler = handlers.get(url.getHost());
             if (handler == null) throw new UnknownHostException(url.getHost());
             byte[] data = handler.apply(url.getPath().substring(1));
             if (data == null) throw new FileNotFoundException(url.getHost() + "/" + url.getPath());

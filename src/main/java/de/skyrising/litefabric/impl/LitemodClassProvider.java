@@ -1,6 +1,6 @@
 package de.skyrising.litefabric.impl;
 
-import de.skyrising.litefabric.impl.url.litefabric.Handler;
+import de.skyrising.litefabric.impl.fs.UrlHandler;
 import it.unimi.dsi.fastutil.objects.Object2IntMap;
 import it.unimi.dsi.fastutil.objects.Object2IntOpenHashMap;
 import it.unimi.dsi.fastutil.objects.Object2LongMap;
@@ -57,7 +57,7 @@ class LitemodClassProvider {
         this.fileSystem = fileSystem;
         this.remapper = remapper;
         INSTANCES.put(this, null);
-        Handler.register(mod.meta.name, resources::get);
+        UrlHandler.register(mod.meta.name, resources::get);
         try {
             cachePackages();
         } catch (IOException e) {
@@ -226,7 +226,7 @@ class LitemodClassProvider {
                 byte[] classBytes = getClassBytes(name.substring(0, name.length() - 6));
                 if (classBytes != null) {
                     resources.put(name, classBytes);
-                    return new URL("litefabric", mod.meta.name, "/" + name);
+                    return new URL("litefabric", mod.meta.name, -1, "/" + name, UrlHandler.getInstance());
                 }
                 return null;
             }
