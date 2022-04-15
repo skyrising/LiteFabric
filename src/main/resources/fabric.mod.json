@@ -3,7 +3,7 @@
   "id": "litefabric",
   "version": "${version}",
   "name": "LiteFabric",
-  "description": "Launch Liteloader mods with Fabric",
+  "description": "Launch LiteLoader mods with Fabric",
   "authors": [
     "skyrising"
   ],
@@ -13,6 +13,7 @@
     "issues": "https://github.com/skyrising/LiteFabric/issues"
   },
   "license": "MIT",
+  "icon": "assets/litefabric/icon.png",
   "environment": "client",
   "entrypoints": {
     "preLaunch": [
